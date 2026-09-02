@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>小氣簿</title>
     
-    <!-- iOS PWA 支持 -->
+    <!-- iOS PWA 全螢幕模式設定 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="小氣簿">
-    <link rel="apple-touch-icon" href="https://api.iconify.design/lucide:notebook-pen.svg?color=%238b5cf6&width=180">
+
+    <!-- iOS 主畫面專屬 App Icon (高解析度設計圖示) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://api.iconify.design/lucide:notebook-pen.svg?color=%233D352A&width=180&background=%23FDFBF7">
+    <link rel="icon" type="image/svg+xml" href="https://api.iconify.design/lucide:notebook-pen.svg?color=%233D352A">
 
     <!-- Tailwind CSS & Font Awesome -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -67,7 +70,6 @@
             position: relative;
         }
 
-        /* 紙張折角與質感的裝飾線條 */
         .paper-table {
             border-collapse: collapse;
             width: 100%;
@@ -77,7 +79,6 @@
             padding: 8px 12px;
         }
 
-        /* 自訂滾動條 */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -89,7 +90,6 @@
             border-radius: 3px;
         }
         
-        /* iPhone Safe Area 頂部邊界 */
         .pt-safe {
             padding-top: env(safe-area-inset-top, 16px);
         }
@@ -143,14 +143,14 @@
         </div>
     </main>
 
-    <!-- 底部 iPhone 提示 (加入主畫面教學) -->
+    <!-- 底部 iPhone 提示 -->
     <footer class="text-center py-3 text-xs text-cream-800/70 border-t border-[#D8CEB9] bg-[#EFE7D5] pb-safe">
-        <span>💡 點擊瀏覽器「分享」圖案 ➔ 「加入主畫面」即可當 App 使用</span>
+        <span>💡 點擊 Safari「分享」圖案 ➔ 「加入主畫面」即可安裝 App Icon</span>
     </footer>
 
     <!-- 新增/編輯 記錄彈窗 Modal -->
     <div id="recordModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
-        <div class="bg-cream-100 w-full max-w-md max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-2xl shadow-2xl border border-cream-300 overflow-hidden animate-slide-up">
+        <div class="bg-cream-100 w-full max-w-md max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-2xl shadow-2xl border border-cream-300 overflow-hidden">
             
             <!-- Modal Header -->
             <div class="bg-cream-200 px-5 py-4 border-b border-cream-300 flex justify-between items-center">
@@ -258,18 +258,15 @@
 
     <!-- JavaScript 邏輯處理 -->
     <script>
-        // 資料儲存 Key
         const STORAGE_KEY = 'small_account_book_records';
         let records = [];
 
-        // 初始化頁面
         document.addEventListener('DOMContentLoaded', () => {
             initDateDropdowns();
             loadRecords();
             renderRecords();
         });
 
-        // 動態生成選單 (日 1-31, 月 1-12, 年)
         function initDateDropdowns() {
             const days = Array.from({length: 31}, (_, i) => i + 1);
             const months = Array.from({length: 12}, (_, i) => i + 1);
@@ -289,7 +286,6 @@
             populateSelect('evtMonth', months, '月');
             populateSelect('evtYear', years, '年');
 
-            // 預設為今天日期
             setTodayDate();
         }
 
@@ -304,7 +300,6 @@
             document.getElementById('evtYear').value = today.getFullYear();
         }
 
-        // 讀取 LocalStorage
         function loadRecords() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
@@ -316,13 +311,11 @@
             }
         }
 
-        // 儲存至 LocalStorage
         function saveRecords() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
             renderRecords();
         }
 
-        // 打開 Modal
         function openModal(editIdx = null) {
             const modal = document.getElementById('recordModal');
             const form = document.getElementById('recordForm');
@@ -336,7 +329,6 @@
                 document.getElementById('editIndex').value = editIdx;
                 const rec = records[editIdx];
 
-                // 填入既有數值
                 document.getElementById('recDay').value = rec.recDate.day;
                 document.getElementById('recMonth').value = rec.recDate.month;
                 document.getElementById('recYear').value = rec.recDate.year;
@@ -359,15 +351,12 @@
             modal.classList.remove('hidden');
         }
 
-        // 關閉 Modal
         function closeModal() {
             document.getElementById('recordModal').classList.add('hidden');
         }
 
-        // 處理表單儲存
         function handleSaveRecord(e) {
             e.preventDefault();
-
             const editIndex = document.getElementById('editIndex').value;
 
             const recordData = {
@@ -393,14 +382,13 @@
             if (editIndex !== "") {
                 records[parseInt(editIndex)] = recordData;
             } else {
-                records.unshift(recordData); // 新記錄放最上面
+                records.unshift(recordData);
             }
 
             saveRecords();
             closeModal();
         }
 
-        // 刪除紀錄
         function deleteRecord(idx) {
             if (confirm('確定要刪除這張小氣簿記錄嗎？')) {
                 records.splice(idx, 1);
@@ -408,13 +396,11 @@
             }
         }
 
-        // 切換完成狀態 (快速打勾/交叉)
         function toggleComplete(idx) {
             records[idx].isCompleted = !records[idx].isCompleted;
             saveRecords();
         }
 
-        // 渲染記錄列表 (A4紙張樣式)
         function renderRecords() {
             const container = document.getElementById('recordsContainer');
             const emptyState = document.getElementById('emptyState');
@@ -443,8 +429,7 @@
                 emptyState.classList.add('hidden');
             }
 
-            filteredRecords.forEach((rec, realIdx) => {
-                // 找出原始數組的 index
+            filteredRecords.forEach((rec) => {
                 const originalIndex = records.indexOf(rec);
 
                 const card = document.createElement('div');
@@ -458,7 +443,6 @@
                     : `<span class="text-red-700 font-bold border border-red-700/40 bg-red-50 px-2 py-0.5 rounded text-xs">✖ 未完成 (交叉)</span>`;
 
                 card.innerHTML = `
-                    <!-- 表格標頭 -->
                     <div class="border-b-2 border-cream-800 pb-3 mb-3 flex justify-between items-center">
                         <div class="flex items-center space-x-2">
                             <span class="text-xs bg-cream-800 text-cream-100 px-1.5 py-0.5 font-sans rounded">#${records.length - originalIndex}</span>
@@ -477,7 +461,6 @@
                         </div>
                     </div>
 
-                    <!-- 獨立 A4 表格內文 -->
                     <table class="paper-table text-xs sm:text-sm text-cream-900 mb-2">
                         <tbody>
                             <tr>
@@ -523,7 +506,6 @@
             });
         }
 
-        // HTML 轉義字元防護
         function escapeHtml(str) {
             return str
                 .replace(/&/g, "&amp;")
