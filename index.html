@@ -5,14 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>小氣簿</title>
     
-    <!-- iOS PWA 全螢幕模式設定 -->
+    <!-- iOS PWA 全螢幕與 App Icon 設定 (淺卡其色底 #E6DCC8 配白色筆記簿) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="小氣簿">
-
-    <!-- iOS 主畫面專屬 App Icon (高解析度設計圖示) -->
-    <link rel="apple-touch-icon" sizes="180x180" href="https://api.iconify.design/lucide:notebook-pen.svg?color=%233D352A&width=180&background=%23FDFBF7">
-    <link rel="icon" type="image/svg+xml" href="https://api.iconify.design/lucide:notebook-pen.svg?color=%233D352A">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://api.iconify.design/lucide:notebook-pen.svg?color=%23FFFFFF&width=180&background=%23E6DCC8">
+    <link rel="icon" type="image/svg+xml" href="https://api.iconify.design/lucide:notebook-pen.svg?color=%23E6DCC8">
 
     <!-- Tailwind CSS & Font Awesome -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -28,16 +26,15 @@
             theme: {
                 extend: {
                     colors: {
-                        cream: {
-                            50: '#FFFEFA',
-                            100: '#FDFBF7',
-                            200: '#F7F3E9',
-                            300: '#EFE7D5',
+                        khaki: {
+                            50: '#FBF9F5',
+                            100: '#F5F0E6',
+                            200: '#E6DCC8',
+                            300: '#D8C8A8',
                             800: '#5C5243',
                             900: '#3D352A'
                         },
-                        ink: '#2C2A29',
-                        stamp: '#C84B31'
+                        cream: '#FDFBF7'
                     },
                     fontFamily: {
                         serif: ['"Noto Serif TC"', 'serif']
@@ -50,24 +47,19 @@
     <style>
         body {
             font-family: 'Noto Serif TC', serif;
-            background-color: #EFE7D5;
-            color: #2C2A29;
+            background-color: #F5F0E6;
+            color: #3D352A;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* 擬真 A4 紙張質感 */
         .paper-a4 {
             background-color: #FDFBF7;
             background-image: 
-                radial-gradient(#EFE7D5 0.75px, transparent 0.75px),
+                radial-gradient(#E6DCC8 0.75px, transparent 0.75px),
                 linear-gradient(to right, rgba(0,0,0,0.01) 1px, transparent 1px);
             background-size: 16px 16px, 100% 100%;
-            box-shadow: 
-                0 1px 3px rgba(0, 0, 0, 0.05),
-                0 10px 25px -5px rgba(61, 53, 42, 0.12),
-                inset 0 0 40px rgba(239, 231, 213, 0.3);
-            border: 1px solid #E5DDCB;
-            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 25px -5px rgba(61, 53, 42, 0.12);
+            border: 1px solid #D8C8A8;
         }
 
         .paper-table {
@@ -75,445 +67,555 @@
             width: 100%;
         }
         .paper-table th, .paper-table td {
-            border: 1px solid #4A4237;
-            padding: 8px 12px;
+            border: 1px solid #3D352A;
+            padding: 8px 10px;
         }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #EFE7D5;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #C5BBA8;
-            border-radius: 3px;
-        }
-        
-        .pt-safe {
-            padding-top: env(safe-area-inset-top, 16px);
-        }
-        .pb-safe {
-            padding-bottom: env(safe-area-inset-bottom, 16px);
-        }
+        .pt-safe { padding-top: env(safe-area-inset-top, 16px); }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between select-none">
+<body class="min-h-screen flex flex-col justify-between">
 
-    <!-- 頂部 Header -->
-    <header class="sticky top-0 z-30 bg-[#EFE7D5]/90 backdrop-blur-md border-b border-[#D8CEB9] px-4 py-3 pt-safe shadow-sm">
-        <div class="max-w-md mx-auto flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-book-bookmark text-cream-800 text-xl"></i>
-                <h1 class="text-xl font-bold tracking-wider text-cream-900">小氣簿</h1>
+    <!-- 1. 登入 / 註冊 畫面遮罩 -->
+    <div id="authOverlay" class="fixed inset-0 z-50 bg-khaki-100 flex items-center justify-center p-4">
+        <div class="bg-cream w-full max-w-sm rounded-2xl shadow-xl border border-khaki-300 p-6 space-y-5 text-center">
+            <div class="space-y-2">
+                <i class="fa-solid fa-book-bookmark text-4xl text-khaki-900"></i>
+                <h2 class="text-2xl font-black text-khaki-900 tracking-wider">小氣簿</h2>
+                <p class="text-xs text-khaki-800">請先登入帳號以同步與翻查個人紀錄</p>
             </div>
-            <!-- 右上角 + 新增按鈕 -->
-            <button onclick="openModal()" class="w-10 h-10 rounded-full bg-cream-900 text-cream-100 flex items-center justify-center shadow-md active:scale-95 transition-transform">
-                <i class="fa-solid fa-plus text-lg"></i>
+
+            <!-- Email / 密碼登入 -->
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-3 text-left">
+                <div>
+                    <label class="text-xs font-bold text-khaki-800">Email 電郵</label>
+                    <input type="email" id="authEmail" required class="w-full p-2 bg-white border border-khaki-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-khaki-900">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-khaki-800">密碼</label>
+                    <input type="password" id="authPassword" required class="w-full p-2 bg-white border border-khaki-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-khaki-900">
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="submit" onclick="authMode='login'" class="flex-1 py-2 bg-khaki-900 text-cream rounded font-bold text-xs shadow">登入</button>
+                    <button type="submit" onclick="authMode='signup'" class="flex-1 py-2 bg-khaki-200 text-khaki-900 border border-khaki-300 rounded font-bold text-xs">註冊新帳號</button>
+                </div>
+            </form>
+
+            <div class="relative flex py-1 items-center">
+                <div class="flex-grow border-t border-khaki-300"></div>
+                <span class="flex-shrink mx-2 text-xs text-khaki-800">或</span>
+                <div class="flex-grow border-t border-khaki-300"></div>
+            </div>
+
+            <!-- Google 登入按鈕 -->
+            <button onclick="handleGoogleLogin()" class="w-full py-2.5 bg-white border border-khaki-300 rounded-lg shadow-sm flex items-center justify-center space-x-2 active:bg-gray-50">
+                <i class="fa-brands fa-google text-red-500"></i>
+                <span class="text-xs font-bold text-khaki-900">連結 Gmail 登入</span>
             </button>
         </div>
-    </header>
+    </div>
 
-    <!-- 主內容區：紀錄列表 -->
-    <main class="flex-1 max-w-md w-full mx-auto p-4 space-y-6 pb-24">
-        
-        <!-- 搜尋與篩選列 -->
-        <div class="flex gap-2">
-            <div class="relative flex-1">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-cream-800/60 text-sm"></i>
-                <input type="text" id="searchInput" oninput="renderRecords()" placeholder="搜尋事件或發起人..." class="w-full pl-9 pr-3 py-1.5 bg-cream-100/80 border border-cream-800/30 rounded-lg text-sm text-cream-900 focus:outline-none focus:ring-1 focus:ring-cream-800">
+    <!-- 2. 主 App 介面 -->
+    <div id="appInterface" class="hidden flex-1 flex flex-col">
+        <!-- 頂部 Header -->
+        <header class="sticky top-0 z-30 bg-khaki-200/90 backdrop-blur-md border-b border-khaki-300 px-4 py-3 pt-safe shadow-sm">
+            <div class="max-w-md mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-book-bookmark text-khaki-900 text-xl"></i>
+                    <h1 class="text-xl font-bold tracking-wider text-khaki-900">小氣簿</h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="handleLogout()" title="登出" class="text-xs text-khaki-800 underline">登出</button>
+                    <!-- 右上角 + 新增按鈕 -->
+                    <button onclick="openModal()" class="w-9 h-9 rounded-full bg-khaki-900 text-cream flex items-center justify-center shadow-md active:scale-95 transition-transform">
+                        <i class="fa-solid fa-plus text-base"></i>
+                    </button>
+                </div>
             </div>
-            <select id="filterStatus" onchange="renderRecords()" class="bg-cream-100/80 border border-cream-800/30 rounded-lg px-2 text-sm text-cream-900 focus:outline-none">
-                <option value="all">全部狀態</option>
-                <option value="completed">✔ 已解決</option>
-                <option value="pending">✖ 未解決</option>
-            </select>
-        </div>
+        </header>
 
-        <!-- 列表容器 -->
-        <div id="recordsContainer" class="space-y-6">
-            <!-- 動態產生小氣簿表格卡片 -->
-        </div>
-
-        <!-- 空狀態提示 -->
-        <div id="emptyState" class="hidden text-center py-16 text-cream-800/60">
-            <i class="fa-regular fa-folder-open text-4xl mb-3"></i>
-            <p class="text-base font-medium">暫無任何小氣紀錄</p>
-            <p class="text-xs mt-1">按右上角「+」開始記下一筆吧！</p>
-        </div>
-    </main>
-
-    <!-- 底部 iPhone 提示 -->
-    <footer class="text-center py-3 text-xs text-cream-800/70 border-t border-[#D8CEB9] bg-[#EFE7D5] pb-safe">
-        <span>💡 點擊 Safari「分享」圖案 ➔ 「加入主畫面」即可安裝 App Icon</span>
-    </footer>
-
-    <!-- 新增/編輯 記錄彈窗 Modal -->
-    <div id="recordModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
-        <div class="bg-cream-100 w-full max-w-md max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-2xl shadow-2xl border border-cream-300 overflow-hidden">
-            
-            <!-- Modal Header -->
-            <div class="bg-cream-200 px-5 py-4 border-b border-cream-300 flex justify-between items-center">
-                <h2 id="modalTitle" class="text-lg font-bold text-cream-900">新增小氣簿記錄</h2>
-                <button onclick="closeModal()" class="text-cream-800 hover:text-cream-900 p-1">
-                    <i class="fa-solid fa-xmark text-xl"></i>
+        <!-- 置頂：分類頁籤 (進行中 vs 已完成) -->
+        <div class="bg-khaki-100 border-b border-khaki-300 sticky top-[57px] z-20">
+            <div class="max-w-md mx-auto grid grid-cols-2 text-center text-sm font-bold">
+                <button id="tabOngoing" onclick="switchTab('ongoing')" class="py-2.5 border-b-2 border-khaki-900 text-khaki-900">
+                    進行中 (<span id="countOngoing">0</span>)
+                </button>
+                <button id="tabCompleted" onclick="switchTab('completed')" class="py-2.5 border-b-2 border-transparent text-khaki-800/60">
+                    已完成 (<span id="countCompleted">0</span>)
                 </button>
             </div>
+        </div>
 
-            <!-- Modal Form Body -->
-            <form id="recordForm" onsubmit="handleSaveRecord(event)" class="p-5 space-y-4 overflow-y-auto flex-1 text-sm text-cream-900">
-                <input type="hidden" id="editIndex">
+        <!-- 主內容區 -->
+        <main class="flex-1 max-w-md w-full mx-auto p-4 space-y-4 pb-20">
+            
+            <!-- 搜尋與排序控制列 -->
+            <div class="space-y-2">
+                <!-- 搜尋列 -->
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-khaki-800/60 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="renderRecords()" placeholder="搜尋事件、內容、申訴人..." class="w-full pl-8 pr-3 py-1.5 bg-cream border border-khaki-300 rounded-lg text-xs text-khaki-900 focus:outline-none">
+                </div>
 
-                <!-- 1. 記錄日期 & 事件日期 -->
-                <div class="space-y-3">
-                    <label class="block font-bold text-xs uppercase tracking-wider text-cream-800">1. 日期設定</label>
+                <!-- 排序選擇 -->
+                <div class="flex gap-2 text-xs">
+                    <select id="sortByField" onchange="renderRecords()" class="flex-1 p-1.5 bg-cream border border-khaki-300 rounded text-khaki-900 focus:outline-none">
+                        <option value="evtDate">按事件日期</option>
+                        <option value="recDate">按記錄日期</option>
+                    </select>
+                    <select id="sortOrder" onchange="renderRecords()" class="flex-1 p-1.5 bg-cream border border-khaki-300 rounded text-khaki-900 focus:outline-none">
+                        <option value="desc">日期近至遠 (最新優先)</option>
+                        <option value="asc">日期遠至近 (舊紀錄優先)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 紀錄列表容器 -->
+            <div id="recordsContainer" class="space-y-6"></div>
+
+            <!-- 空狀態 -->
+            <div id="emptyState" class="hidden text-center py-12 text-khaki-800/60">
+                <i class="fa-regular fa-folder-open text-3xl mb-2"></i>
+                <p class="text-sm">此分類下暫無紀錄</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- 3. 新增 / 編輯 彈窗 Modal -->
+    <div id="recordModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-cream w-full max-w-md max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-2xl shadow-2xl border border-khaki-300 overflow-hidden">
+            
+            <div class="bg-khaki-200 px-4 py-3 border-b border-khaki-300 flex justify-between items-center">
+                <h2 id="modalTitle" class="font-bold text-khaki-900">小氣簿記錄表</h2>
+                <button onclick="closeModal()" class="text-khaki-800 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="recordForm" onsubmit="handleSaveRecord(event)" class="p-4 space-y-4 overflow-y-auto flex-1 text-xs text-khaki-900">
+                <input type="hidden" id="editDocId">
+
+                <!-- 第一部分 -->
+                <div class="p-3 bg-khaki-100/50 rounded-lg border border-khaki-300 space-y-3">
+                    <div class="font-bold text-khaki-900 border-b border-khaki-300 pb-1">【 第一部分 】</div>
                     
                     <div>
-                        <span class="text-xs text-cream-800/80 mb-1 block">記錄日期：</span>
-                        <div class="grid grid-cols-3 gap-2">
-                            <select id="recDay" class="p-2 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800"></select>
-                            <select id="recMonth" class="p-2 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800"></select>
-                            <select id="recYear" class="p-2 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800"></select>
+                        <span class="block mb-1">記錄日期：</span>
+                        <div class="grid grid-cols-3 gap-1">
+                            <select id="recDay" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
+                            <select id="recMonth" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
+                            <select id="recYear" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
                         </div>
                     </div>
 
                     <div>
-                        <span class="text-xs text-cream-800/80 mb-1 block">事件日期：</span>
-                        <div class="grid grid-cols-3 gap-2">
-                            <select id="evtDay" class="p-2 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800"></select>
-                            <select id="evtMonth" class="p-2 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800"></select>
-                            <select id="evtYear" class="p-2 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800"></select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. 事件類型 -->
-                <div>
-                    <label class="block font-bold text-xs uppercase tracking-wider text-cream-800 mb-1">2. 事件類型</label>
-                    <div class="flex gap-4 items-center pt-1">
-                        <label class="flex items-center space-x-1.5 cursor-pointer">
-                            <input type="radio" name="eventType" value="日常爭執" checked class="accent-cream-900">
-                            <span>日常爭執</span>
-                        </label>
-                        <label class="flex items-center space-x-1.5 cursor-pointer">
-                            <input type="radio" name="eventType" value="協商事件" class="accent-cream-900">
-                            <span>協商事件</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- 3. 事件內容及經過 -->
-                <div>
-                    <label class="block font-bold text-xs uppercase tracking-wider text-cream-800 mb-1">3. 事件內容及經過</label>
-                    <textarea id="eventDetail" rows="3" required placeholder="請詳細描述事情的經過..." class="w-full p-2.5 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800 resize-none"></textarea>
-                </div>
-
-                <!-- 4. 補償/解決方案 -->
-                <div>
-                    <label class="block font-bold text-xs uppercase tracking-wider text-cream-800 mb-1">4. 補償 / 解決方案</label>
-                    <textarea id="solutionDetail" rows="2" placeholder="寫下協議好的補償或解決方法..." class="w-full p-2.5 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800 resize-none"></textarea>
-                </div>
-
-                <!-- 5. 事件發起人、記錄者 -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-xs uppercase tracking-wider text-cream-800 mb-1">事件發起人</label>
-                        <select id="initiator" class="w-full p-2 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800">
-                            <option value="Miki">Miki</option>
-                            <option value="Sunny">Sunny</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-xs uppercase tracking-wider text-cream-800 mb-1">記錄者</label>
-                        <select id="recorder" class="w-full p-2 bg-white border border-cream-800/30 rounded focus:ring-1 focus:ring-cream-800">
+                        <span class="block mb-1">記錄者：</span>
+                        <select id="recorder" class="w-full p-1.5 bg-white border border-khaki-300 rounded">
                             <option value="Miki">Miki</option>
                             <option value="Sunny">Sunny</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- 6. 已完成事項 -->
-                <div>
-                    <label class="block font-bold text-xs uppercase tracking-wider text-cream-800 mb-1">6. 事項狀態</label>
-                    <div class="flex gap-4 items-center pt-1">
-                        <label class="flex items-center space-x-1.5 cursor-pointer">
-                            <input type="radio" name="isCompleted" value="true" class="accent-cream-900">
-                            <span class="text-green-700 font-bold">✔ 已完成 (剔)</span>
-                        </label>
-                        <label class="flex items-center space-x-1.5 cursor-pointer">
-                            <input type="radio" name="isCompleted" value="false" checked class="accent-cream-900">
-                            <span class="text-red-700 font-bold">✖ 未完成 (交叉)</span>
-                        </label>
+                <!-- 第二部分 -->
+                <div class="p-3 bg-khaki-100/50 rounded-lg border border-khaki-300 space-y-3">
+                    <div class="font-bold text-khaki-900 border-b border-khaki-300 pb-1">【 第二部分 】</div>
+
+                    <div>
+                        <span class="block mb-1">事件日期：</span>
+                        <div class="grid grid-cols-3 gap-1">
+                            <select id="evtDay" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
+                            <select id="evtMonth" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
+                            <select id="evtYear" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="block mb-1">事件類型：</span>
+                        <div class="flex gap-4 pt-1">
+                            <label class="flex items-center space-x-1"><input type="radio" name="eventType" value="日常爭執" checked class="accent-khaki-900"><span>日常爭執</span></label>
+                            <label class="flex items-center space-x-1"><input type="radio" name="eventType" value="協商事件" class="accent-khaki-900"><span>協商事件</span></label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="block mb-1">事件內容及經過：</span>
+                        <textarea id="eventDetail" rows="3" required placeholder="詳細描述內容..." class="w-full p-2 bg-white border border-khaki-300 rounded resize-none"></textarea>
+                        
+                        <!-- 圖片上傳 -->
+                        <div class="mt-2">
+                            <span class="block text-[10px] text-khaki-800/80 mb-1">上傳相關圖片（選填）：</span>
+                            <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)" class="w-full text-xs text-khaki-800">
+                            <div id="imagePreviewContainer" class="mt-2 hidden">
+                                <img id="imagePreview" src="" class="max-h-32 rounded border border-khaki-300 object-cover">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="block mb-1">補償 / 解決方案（選填）：</span>
+                        <textarea id="solutionDetail" rows="2" placeholder="如沒有可留空..." class="w-full p-2 bg-white border border-khaki-300 rounded resize-none"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="block mb-1">申訴人：</span>
+                            <select id="complainant" class="w-full p-1.5 bg-white border border-khaki-300 rounded">
+                                <option value="Miki">Miki</option>
+                                <option value="Sunny">Sunny</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span class="block mb-1">被申訴人：</span>
+                            <select id="respondent" class="w-full p-1.5 bg-white border border-khaki-300 rounded">
+                                <option value="Sunny">Sunny</option>
+                                <option value="Miki">Miki</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="block mb-1">溝通結果：</span>
+                        <div class="flex gap-4 pt-1">
+                            <label class="flex items-center space-x-1 cursor-pointer"><input type="radio" name="talkStatus" value="settled" checked class="accent-khaki-900"><span class="text-green-700 font-bold">✔ 講掂數</span></label>
+                            <label class="flex items-center space-x-1 cursor-pointer"><input type="radio" name="talkStatus" value="unsettled" class="accent-khaki-900"><span class="text-red-700 font-bold">✖ 未講掂數</span></label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="block mb-1">其他備註（選填）：</span>
+                        <input type="text" id="remarks" placeholder="補充備註..." class="w-full p-1.5 bg-white border border-khaki-300 rounded">
                     </div>
                 </div>
 
-                <!-- 按鈕列 -->
-                <div class="pt-3 flex gap-2">
-                    <button type="button" onclick="closeModal()" class="flex-1 py-2.5 bg-cream-200 text-cream-900 font-medium rounded border border-cream-300 active:bg-cream-300">取消</button>
-                    <button type="submit" class="flex-1 py-2.5 bg-cream-900 text-cream-100 font-bold rounded shadow active:bg-black">保存紀錄</button>
+                <div class="pt-2 flex gap-2">
+                    <button type="button" onclick="closeModal()" class="flex-1 py-2 bg-khaki-200 text-khaki-900 rounded border border-khaki-300 font-bold">取消</button>
+                    <button type="submit" class="flex-1 py-2 bg-khaki-900 text-cream rounded font-bold shadow">保存記錄</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- JavaScript 邏輯處理 -->
-    <script>
-        const STORAGE_KEY = 'small_account_book_records';
-        let records = [];
+    <!-- Firebase SDK (模組化) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initDateDropdowns();
-            loadRecords();
-            renderRecords();
+        // ⚠️ 請替換為你自己的 Firebase 專案設定資訊
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.authMode = 'login';
+        let currentUser = null;
+        let allRecords = [];
+        let currentTab = 'ongoing';
+        let currentBase64Image = "";
+
+        // 監聽登入狀態
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('appInterface').classList.remove('hidden');
+                listenToData();
+            } else {
+                document.getElementById('authOverlay').classList.remove('hidden');
+                document.getElementById('appInterface').classList.add('hidden');
+            }
         });
 
-        function initDateDropdowns() {
-            const days = Array.from({length: 31}, (_, i) => i + 1);
-            const months = Array.from({length: 12}, (_, i) => i + 1);
-            const currentYear = new Date().getFullYear();
-            const years = Array.from({length: 10}, (_, i) => currentYear - 5 + i);
-
-            const populateSelect = (elementId, items, suffix = '') => {
-                const el = document.getElementById(elementId);
-                el.innerHTML = items.map(item => `<option value="${item}">${item}${suffix}</option>`).join('');
-            };
-
-            populateSelect('recDay', days, '日');
-            populateSelect('recMonth', months, '月');
-            populateSelect('recYear', years, '年');
-
-            populateSelect('evtDay', days, '日');
-            populateSelect('evtMonth', months, '月');
-            populateSelect('evtYear', years, '年');
-
-            setTodayDate();
-        }
-
-        function setTodayDate() {
-            const today = new Date();
-            document.getElementById('recDay').value = today.getDate();
-            document.getElementById('recMonth').value = today.getMonth() + 1;
-            document.getElementById('recYear').value = today.getFullYear();
-
-            document.getElementById('evtDay').value = today.getDate();
-            document.getElementById('evtMonth').value = today.getMonth() + 1;
-            document.getElementById('evtYear').value = today.getFullYear();
-        }
-
-        function loadRecords() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    records = JSON.parse(saved);
-                } catch (e) {
-                    records = [];
-                }
-            }
-        }
-
-        function saveRecords() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-            renderRecords();
-        }
-
-        function openModal(editIdx = null) {
-            const modal = document.getElementById('recordModal');
-            const form = document.getElementById('recordForm');
-            const titleEl = document.getElementById('modalTitle');
-
-            form.reset();
-            setTodayDate();
-
-            if (editIdx !== null) {
-                titleEl.textContent = "修改小氣簿記錄";
-                document.getElementById('editIndex').value = editIdx;
-                const rec = records[editIdx];
-
-                document.getElementById('recDay').value = rec.recDate.day;
-                document.getElementById('recMonth').value = rec.recDate.month;
-                document.getElementById('recYear').value = rec.recDate.year;
-
-                document.getElementById('evtDay').value = rec.evtDate.day;
-                document.getElementById('evtMonth').value = rec.evtDate.month;
-                document.getElementById('evtYear').value = rec.evtDate.year;
-
-                form.eventType.value = rec.eventType;
-                document.getElementById('eventDetail').value = rec.eventDetail;
-                document.getElementById('solutionDetail').value = rec.solutionDetail;
-                document.getElementById('initiator').value = rec.initiator;
-                document.getElementById('recorder').value = rec.recorder;
-                form.isCompleted.value = rec.isCompleted ? 'true' : 'false';
-            } else {
-                titleEl.textContent = "新增小氣簿記錄";
-                document.getElementById('editIndex').value = "";
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('recordModal').classList.add('hidden');
-        }
-
-        function handleSaveRecord(e) {
+        // 帳號登入/註冊
+        window.handleAuth = async (e) => {
             e.preventDefault();
-            const editIndex = document.getElementById('editIndex').value;
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            try {
+                if (window.authMode === 'login') {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+            } catch (err) {
+                alert("驗證失敗: " + err.message);
+            }
+        };
+
+        // Google 登入
+        window.handleGoogleLogin = async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (err) {
+                alert("Google 登入失敗: " + err.message);
+            }
+        };
+
+        // 登出
+        window.handleLogout = () => signOut(auth);
+
+        // 實時監聽 Firestore 資料
+        function listenToData() {
+            if (!currentUser) return;
+            const q = query(collection(db, "records"), where("uid", "==", currentUser.uid));
+            onSnapshot(q, (snapshot) => {
+                allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderRecords();
+            });
+        }
+
+        // 圖片預覽並轉為 Base64 (可直接留底儲存)
+        window.previewImage = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    currentBase64Image = reader.result;
+                    document.getElementById('imagePreview').src = currentBase64Image;
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // 儲存記錄至 Firestore
+        window.handleSaveRecord = async (e) => {
+            e.preventDefault();
+            const docId = document.getElementById('editDocId').value;
 
             const recordData = {
+                uid: currentUser.uid,
                 recDate: {
-                    day: document.getElementById('recDay').value,
-                    month: document.getElementById('recMonth').value,
-                    year: document.getElementById('recYear').value
+                    day: parseInt(document.getElementById('recDay').value),
+                    month: parseInt(document.getElementById('recMonth').value),
+                    year: parseInt(document.getElementById('recYear').value)
                 },
+                recorder: document.getElementById('recorder').value,
                 evtDate: {
-                    day: document.getElementById('evtDay').value,
-                    month: document.getElementById('evtMonth').value,
-                    year: document.getElementById('evtYear').value
+                    day: parseInt(document.getElementById('evtDay').value),
+                    month: parseInt(document.getElementById('evtMonth').value),
+                    year: parseInt(document.getElementById('evtYear').value)
                 },
                 eventType: document.querySelector('input[name="eventType"]:checked').value,
                 eventDetail: document.getElementById('eventDetail').value.trim(),
+                imageUrl: currentBase64Image,
                 solutionDetail: document.getElementById('solutionDetail').value.trim(),
-                initiator: document.getElementById('initiator').value,
-                recorder: document.getElementById('recorder').value,
-                isCompleted: document.querySelector('input[name="isCompleted"]:checked').value === 'true',
-                createdAt: new Date().getTime()
+                complainant: document.getElementById('complainant').value,
+                respondent: document.getElementById('respondent').value,
+                talkStatus: document.querySelector('input[name="talkStatus"]:checked').value,
+                remarks: document.getElementById('remarks').value.trim(),
+                createdAt: Date.now()
             };
 
-            if (editIndex !== "") {
-                records[parseInt(editIndex)] = recordData;
-            } else {
-                records.unshift(recordData);
+            try {
+                if (docId) {
+                    await updateDoc(doc(db, "records", docId), recordData);
+                } else {
+                    await addDoc(collection(db, "records"), recordData);
+                }
+                closeModal();
+            } catch (err) {
+                alert("儲存失敗: " + err.message);
             }
+        };
 
-            saveRecords();
-            closeModal();
-        }
-
-        function deleteRecord(idx) {
-            if (confirm('確定要刪除這張小氣簿記錄嗎？')) {
-                records.splice(idx, 1);
-                saveRecords();
+        // 刪除記錄
+        window.deleteRecord = async (docId) => {
+            if (confirm("確定刪除這張記錄表嗎？")) {
+                await deleteDoc(doc(db, "records", docId));
             }
-        }
+        };
 
-        function toggleComplete(idx) {
-            records[idx].isCompleted = !records[idx].isCompleted;
-            saveRecords();
-        }
-
-        function renderRecords() {
+        // 渲染與自動分類邏輯
+        window.renderRecords = () => {
             const container = document.getElementById('recordsContainer');
-            const emptyState = document.getElementById('emptyState');
             const searchKeyword = document.getElementById('searchInput').value.toLowerCase();
-            const filterStatus = document.getElementById('filterStatus').value;
+            const sortByField = document.getElementById('sortByField').value;
+            const sortOrder = document.getElementById('sortOrder').value;
 
-            container.innerHTML = '';
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-            const filteredRecords = records.filter(r => {
-                const matchesSearch = r.eventDetail.toLowerCase().includes(searchKeyword) ||
-                                      r.solutionDetail.toLowerCase().includes(searchKeyword) ||
-                                      r.initiator.toLowerCase().includes(searchKeyword) ||
-                                      r.recorder.toLowerCase().includes(searchKeyword);
+            let ongoingCount = 0;
+            let completedCount = 0;
+
+            // 計算與標註自動分類
+            const processedRecords = allRecords.map(rec => {
+                const evtDateObj = new Date(rec.evtDate.year, rec.evtDate.month - 1, rec.evtDate.day);
+                // 自動判斷：若事件日期已過，或講掂數，歸為已完成
+                const isExpiredOrSettled = (evtDateObj < today) || (rec.talkStatus === 'settled');
                 
-                let matchesStatus = true;
-                if (filterStatus === 'completed') matchesStatus = r.isCompleted === true;
-                if (filterStatus === 'pending') matchesStatus = r.isCompleted === false;
+                if (isExpiredOrSettled) completedCount++;
+                else ongoingCount++;
 
-                return matchesSearch && matchesStatus;
+                return { ...rec, isCompletedCategory: isExpiredOrSettled };
             });
 
-            if (filteredRecords.length === 0) {
-                emptyState.classList.remove('hidden');
-                return;
-            } else {
-                emptyState.classList.add('hidden');
+            document.getElementById('countOngoing').textContent = ongoingCount;
+            document.getElementById('countCompleted').textContent = completedCount;
+
+            // 篩選當前頁籤
+            let filtered = processedRecords.filter(r => currentTab === 'ongoing' ? !r.isCompletedCategory : r.isCompletedCategory);
+
+            // 搜尋過濾
+            if (searchKeyword) {
+                filtered = filtered.filter(r => 
+                    r.eventDetail.toLowerCase().includes(searchKeyword) ||
+                    r.complainant.toLowerCase().includes(searchKeyword) ||
+                    r.respondent.toLowerCase().includes(searchKeyword) ||
+                    (r.remarks && r.remarks.toLowerCase().includes(searchKeyword))
+                );
             }
 
-            filteredRecords.forEach((rec) => {
-                const originalIndex = records.indexOf(rec);
+            // 排序邏輯
+            filtered.sort((a, b) => {
+                const dateA = new Date(a[sortByField].year, a[sortByField].month - 1, a[sortByField].day).getTime();
+                const dateB = new Date(b[sortByField].year, b[sortByField].month - 1, b[sortByField].day).getTime();
+                return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+            });
 
+            container.innerHTML = '';
+            document.getElementById('emptyState').classList.toggle('hidden', filtered.length > 0);
+
+            filtered.forEach(rec => {
                 const card = document.createElement('div');
-                card.className = 'paper-a4 rounded-lg p-5 transition-transform hover:-translate-y-0.5';
+                card.className = 'paper-a4 rounded-lg p-4 space-y-3';
 
                 const recDateStr = `${rec.recDate.day}日 / ${rec.recDate.month}月 / ${rec.recDate.year}年`;
                 const evtDateStr = `${rec.evtDate.day}日 / ${rec.evtDate.month}月 / ${rec.evtDate.year}年`;
 
-                const completedTag = rec.isCompleted 
-                    ? `<span class="text-green-700 font-bold border border-green-700/40 bg-green-50 px-2 py-0.5 rounded text-xs">✔ 已完成 (剔)</span>` 
-                    : `<span class="text-red-700 font-bold border border-red-700/40 bg-red-50 px-2 py-0.5 rounded text-xs">✖ 未完成 (交叉)</span>`;
+                const statusTag = rec.talkStatus === 'settled' 
+                    ? `<span class="text-green-700 font-bold border border-green-700/40 bg-green-50 px-1.5 py-0.5 rounded text-[11px]">✔ 講掂數</span>` 
+                    : `<span class="text-red-700 font-bold border border-red-700/40 bg-red-50 px-1.5 py-0.5 rounded text-[11px]">✖ 未講掂數</span>`;
 
                 card.innerHTML = `
-                    <div class="border-b-2 border-cream-800 pb-3 mb-3 flex justify-between items-center">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs bg-cream-800 text-cream-100 px-1.5 py-0.5 font-sans rounded">#${records.length - originalIndex}</span>
-                            <h2 class="text-lg font-black tracking-widest text-cream-900">小氣簿記錄表</h2>
-                        </div>
-                        <div class="flex items-center space-x-2 text-cream-800/80">
-                            <button onclick="toggleComplete(${originalIndex})" title="快速切換完成狀態" class="hover:text-cream-900 p-1">
-                                <i class="fa-solid ${rec.isCompleted ? 'fa-circle-check text-green-700' : 'fa-circle-xmark text-red-700'} text-lg"></i>
-                            </button>
-                            <button onclick="openModal(${originalIndex})" title="編輯" class="hover:text-cream-900 p-1">
-                                <i class="fa-solid fa-pen-to-square text-sm"></i>
-                            </button>
-                            <button onclick="deleteRecord(${originalIndex})" title="刪除" class="hover:text-red-700 p-1">
-                                <i class="fa-solid fa-trash-can text-sm"></i>
-                            </button>
+                    <div class="border-b-2 border-khaki-900 pb-2 flex justify-between items-center">
+                        <h2 class="font-black text-base text-khaki-900 tracking-wider">小氣簿記錄表</h2>
+                        <div class="flex items-center space-x-2 text-xs">
+                            <button onclick="openModal('${rec.id}')" class="text-khaki-800"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteRecord('${rec.id}')" class="text-red-700"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
 
-                    <table class="paper-table text-xs sm:text-sm text-cream-900 mb-2">
+                    <table class="paper-table text-xs text-khaki-900">
                         <tbody>
+                            <tr class="bg-khaki-200/40 font-bold"><td colspan="2">【 第一部分 】</td></tr>
+                            <tr><td class="w-1/3 bg-khaki-100 font-bold">記錄日期</td><td>${recDateStr}</td></tr>
+                            <tr><td class="bg-khaki-100 font-bold">記錄者</td><td>${rec.recorder}</td></tr>
+
+                            <tr class="bg-khaki-200/40 font-bold"><td colspan="2">【 第二部分 】</td></tr>
+                            <tr><td class="bg-khaki-100 font-bold">事件日期</td><td>${evtDateStr}</td></tr>
+                            <tr><td class="bg-khaki-100 font-bold">事件類型</td><td>${rec.eventType}</td></tr>
+                            <tr><td class="bg-khaki-100 font-bold">申訴人 / 被申訴人</td><td>${rec.complainant} ➔ ${rec.respondent}</td></tr>
+                            <tr><td class="bg-khaki-100 font-bold">溝通狀態</td><td>${statusTag}</td></tr>
+                            
+                            <tr><td colspan="2" class="bg-khaki-100 font-bold border-b-0">事件內容及經過：</td></tr>
                             <tr>
-                                <td class="bg-cream-200/60 font-bold w-1/3">記錄日期</td>
-                                <td class="w-2/3">${recDateStr}</td>
+                                <td colspan="2" class="whitespace-pre-wrap bg-white/50 p-2">
+                                    ${escapeHtml(rec.eventDetail)}
+                                    ${rec.imageUrl ? `<img src="${rec.imageUrl}" class="mt-2 max-h-40 rounded border border-khaki-300">` : ''}
+                                </td>
                             </tr>
-                            <tr>
-                                <td class="bg-cream-200/60 font-bold">事件日期</td>
-                                <td>${evtDateStr}</td>
-                            </tr>
-                            <tr>
-                                <td class="bg-cream-200/60 font-bold">事件類型</td>
-                                <td><span class="font-semibold">${rec.eventType}</span></td>
-                            </tr>
-                            <tr>
-                                <td class="bg-cream-200/60 font-bold">事件發起人</td>
-                                <td><span class="underline decoration-cream-800/40">${rec.initiator}</span></td>
-                            </tr>
-                            <tr>
-                                <td class="bg-cream-200/60 font-bold">記錄者</td>
-                                <td><span class="underline decoration-cream-800/40">${rec.recorder}</span></td>
-                            </tr>
-                            <tr>
-                                <td class="bg-cream-200/60 font-bold">事項狀態</td>
-                                <td>${completedTag}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" class="bg-cream-200/40 font-bold border-b-0">事件內容及經過：</td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" class="whitespace-pre-wrap leading-relaxed bg-white/40 p-3">${escapeHtml(rec.eventDetail)}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" class="bg-cream-200/40 font-bold border-b-0">補償 / 解決方案：</td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" class="whitespace-pre-wrap leading-relaxed bg-white/40 p-3">${rec.solutionDetail ? escapeHtml(rec.solutionDetail) : '<span class="text-cream-800/40 italic">尚未填寫補償方案</span>'}</td>
-                            </tr>
+
+                            ${rec.solutionDetail ? `
+                                <tr><td colspan="2" class="bg-khaki-100 font-bold border-b-0">補償 / 解決方案：</td></tr>
+                                <tr><td colspan="2" class="whitespace-pre-wrap bg-white/50 p-2">${escapeHtml(rec.solutionDetail)}</td></tr>
+                            ` : ''}
+
+                            ${rec.remarks ? `
+                                <tr><td class="bg-khaki-100 font-bold">其他備註</td><td>${escapeHtml(rec.remarks)}</td></tr>
+                            ` : ''}
                         </tbody>
                     </table>
                 `;
                 container.appendChild(card);
             });
-        }
+        };
+
+        // 切換頁籤
+        window.switchTab = (tab) => {
+            currentTab = tab;
+            document.getElementById('tabOngoing').className = tab === 'ongoing' ? 'py-2.5 border-b-2 border-khaki-900 text-khaki-900' : 'py-2.5 border-b-2 border-transparent text-khaki-800/60';
+            document.getElementById('tabCompleted').className = tab === 'completed' ? 'py-2.5 border-b-2 border-khaki-900 text-khaki-900' : 'py-2.5 border-b-2 border-transparent text-khaki-800/60';
+            renderRecords();
+        };
+
+        // 初始化與彈窗選單處理
+        window.initDateDropdowns = () => {
+            const days = Array.from({length: 31}, (_, i) => i + 1);
+            const months = Array.from({length: 12}, (_, i) => i + 1);
+            const currentYear = new Date().getFullYear();
+            const years = Array.from({length: 10}, (_, i) => currentYear - 5 + i);
+
+            const populate = (id, items, suffix) => {
+                document.getElementById(id).innerHTML = items.map(i => `<option value="${i}">${i}${suffix}</option>`).join('');
+            };
+
+            populate('recDay', days, '日'); populate('recMonth', months, '月'); populate('recYear', years, '年');
+            populate('evtDay', days, '日'); populate('evtMonth', months, '月'); populate('evtYear', years, '年');
+
+            const today = new Date();
+            document.getElementById('recDay').value = today.getDate();
+            document.getElementById('recMonth').value = today.getMonth() + 1;
+            document.getElementById('recYear').value = today.getFullYear();
+            document.getElementById('evtDay').value = today.getDate();
+            document.getElementById('evtMonth').value = today.getMonth() + 1;
+            document.getElementById('evtYear').value = today.getFullYear();
+        };
+
+        window.openModal = (docId = null) => {
+            document.getElementById('recordForm').reset();
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            currentBase64Image = "";
+            initDateDropdowns();
+
+            if (docId) {
+                const rec = allRecords.find(r => r.id === docId);
+                document.getElementById('editDocId').value = docId;
+                document.getElementById('recDay').value = rec.recDate.day;
+                document.getElementById('recMonth').value = rec.recDate.month;
+                document.getElementById('recYear').value = rec.recDate.year;
+                document.getElementById('recorder').value = rec.recorder;
+
+                document.getElementById('evtDay').value = rec.evtDate.day;
+                document.getElementById('evtMonth').value = rec.evtDate.month;
+                document.getElementById('evtYear').value = rec.evtDate.year;
+                
+                document.querySelector(`input[name="eventType"][value="${rec.eventType}"]`).checked = true;
+                document.getElementById('eventDetail').value = rec.eventDetail;
+                document.getElementById('solutionDetail').value = rec.solutionDetail || "";
+                document.getElementById('complainant').value = rec.complainant;
+                document.getElementById('respondent').value = rec.respondent;
+                document.querySelector(`input[name="talkStatus"][value="${rec.talkStatus}"]`).checked = true;
+                document.getElementById('remarks').value = rec.remarks || "";
+
+                if (rec.imageUrl) {
+                    currentBase64Image = rec.imageUrl;
+                    document.getElementById('imagePreview').src = rec.imageUrl;
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('editDocId').value = "";
+            }
+            document.getElementById('recordModal').classList.remove('hidden');
+        };
+
+        window.closeModal = () => document.getElementById('recordModal').classList.add('hidden');
 
         function escapeHtml(str) {
-            return str
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+            return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
         }
+
+        initDateDropdowns();
     </script>
 </body>
 </html>
