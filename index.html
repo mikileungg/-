@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>小氣簿</title>
     
-    <!-- iOS PWA 主畫面 Icon 設定 (淺卡其色底 #E6DCC8 配白色筆記簿) -->
+    <!-- iOS PWA 主畫面 Icon 設定 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="小氣簿">
@@ -73,9 +73,26 @@
 
         .pt-safe { padding-top: env(safe-area-inset-top, 16px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+
+        /* Toast 提示動畫 */
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            15% { opacity: 1; transform: translate(-50%, 0); }
+            85% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+        .toast-show {
+            animation: fadeInOut 2.5s forwards;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
+
+    <!-- 保存成功提示 Toast (填完!) -->
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-khaki-900 text-cream px-6 py-3 rounded-full shadow-2xl font-bold text-sm hidden flex items-center space-x-2 border border-khaki-300">
+        <i class="fa-solid fa-circle-check text-green-400 text-base"></i>
+        <span>填完!</span>
+    </div>
 
     <!-- 1. 登入 / 註冊 畫面遮罩 -->
     <div id="authOverlay" class="fixed inset-0 z-50 bg-khaki-100 flex items-center justify-center p-4">
@@ -310,13 +327,13 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (已整合你的專屬 CDN 金鑰) -->
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 你的專屬 Firebase 配置
+        // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyDHatHNGhqx75AxLweL39qiGOkI5AvoFvQ",
             authDomain: "smallbook-6e3d7.firebaseapp.com",
@@ -337,12 +354,31 @@
         let currentTab = 'ongoing';
         let currentBase64Image = "";
 
+        // 顯示 Toast 提示訊息
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('hidden');
+            toast.classList.add('toast-show');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('toast-show');
+            }, 2500);
+        }
+
+        // 取得香港時區 (Asia/Hong_Kong) 的「今天 00:00:00」日期物件
+        function getHongKongToday() {
+            const now = new Date();
+            const hkTimeString = now.toLocaleString("en-US", { timeZone: "Asia/Hong_Kong" });
+            const hkDate = new Date(hkTimeString);
+            return new Date(hkDate.getFullYear(), hkDate.getMonth(), hkDate.getDate());
+        }
+
         // 處理 Google Redirect 登入結果
         getRedirectResult(auth).catch((err) => {
             if(err && err.code) alert("Google 登入失敗: " + err.message);
         });
 
-        // 監聽登入狀態
+        // 監聽登入狀態 (獨立帳號處理)
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
@@ -350,6 +386,7 @@
                 document.getElementById('appInterface').classList.remove('hidden');
                 listenToData();
             } else {
+                allRecords = []; // 清空記憶體記錄，防止資訊殘留
                 document.getElementById('authOverlay').classList.remove('hidden');
                 document.getElementById('appInterface').classList.add('hidden');
             }
@@ -426,7 +463,7 @@
         // 登出
         window.handleLogout = () => signOut(auth);
 
-        // 實時監聽資料庫
+        // 實時監聽資料庫（嚴格根據 UID 隔離每位使用者）
         function listenToData() {
             if (!currentUser) return;
             const q = query(collection(db, "records"), where("uid", "==", currentUser.uid));
@@ -486,6 +523,7 @@
                     await addDoc(collection(db, "records"), recordData);
                 }
                 closeModal();
+                showToast(); // 需求1: 每次按儲存彈出「填完!」
             } catch (err) {
                 alert("儲存失敗: " + err.message);
             }
@@ -505,15 +543,19 @@
             const sortByField = document.getElementById('sortByField').value;
             const sortOrder = document.getElementById('sortOrder').value;
 
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            // 取得香港時區的今天 00:00:00
+            const hkToday = getHongKongToday();
 
             let ongoingCount = 0;
             let completedCount = 0;
 
             const processedRecords = allRecords.map(rec => {
+                // 事件日期物件
                 const evtDateObj = new Date(rec.evtDate.year, rec.evtDate.month - 1, rec.evtDate.day);
-                const isCompleted = (evtDateObj < today) || (rec.talkStatus === 'settled');
+                
+                // 需求2: 必須香港時區日期中「事件日期已過去」(evtDateObj < hkToday) 才算已完成。
+                // 即使勾選了「講掂數」，只要事件日期未過去（今日或未來），依然算是「進行中」。
+                const isCompleted = (evtDateObj < hkToday);
                 
                 if (isCompleted) completedCount++;
                 else ongoingCount++;
