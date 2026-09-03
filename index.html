@@ -310,20 +310,21 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (模组化) -->
+    <!-- Firebase SDK (已整合你的專屬 CDN 金鑰) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ⚠️ 請填入你自己的 Firebase 專案設定金鑰
+        // 你的專屬 Firebase 配置
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDHatHNGhqx75AxLweL39qiGOkI5AvoFvQ",
+            authDomain: "smallbook-6e3d7.firebaseapp.com",
+            projectId: "smallbook-6e3d7",
+            storageBucket: "smallbook-6e3d7.firebasestorage.app",
+            messagingSenderId: "679240518674",
+            appId: "1:679240518674:web:92cecfb5c46009b5c19ccb",
+            measurementId: "G-F8GY0D1Q2N"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -336,7 +337,7 @@
         let currentTab = 'ongoing';
         let currentBase64Image = "";
 
-        // 處理 Safari / iCloud 私密轉送 的 Google Redirect 登入結果
+        // 處理 Google Redirect 登入結果
         getRedirectResult(auth).catch((err) => {
             if(err && err.code) alert("Google 登入失敗: " + err.message);
         });
@@ -388,13 +389,11 @@
             const accountInput = document.getElementById('authAccount').value.trim();
             const password = document.getElementById('authPassword').value;
 
-            // 若使用電話號碼註冊，將電話轉為虛擬 Email 格式發送給 Firebase Auth 保存
             let emailToUse = accountInput;
             if (window.currentAuthMode === 'signup' && document.querySelector('input[name="accountType"]:checked').value === 'phone') {
                 const cleanPhone = accountInput.replace(/\D/g, '');
                 emailToUse = `phone_${cleanPhone}@smallbook.app`;
             } else if (!emailToUse.includes('@')) {
-                // 登入時若輸入純數字電話
                 const cleanPhone = accountInput.replace(/\D/g, '');
                 if (cleanPhone) emailToUse = `phone_${cleanPhone}@smallbook.app`;
             }
@@ -410,11 +409,10 @@
             }
         };
 
-        // Google Gmail 登入（完美支援 iPhone Safari + iCloud 隱藏 IP）
+        // Google 登入
         window.handleGoogleLogin = async () => {
             const provider = new GoogleAuthProvider();
             try {
-                // 優先嘗試 Pop-up 登入，被擋時自動退回 Redirect
                 await signInWithPopup(auth, provider);
             } catch (err) {
                 if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
@@ -438,7 +436,7 @@
             });
         }
 
-        // 圖片上傳預覽 (Base64 保存)
+        // 圖片上傳預覽
         window.previewImage = (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -500,7 +498,7 @@
             }
         };
 
-        // 渲染與自動過期/進行中分類邏輯
+        // 渲染與自動分類邏輯
         window.renderRecords = () => {
             const container = document.getElementById('recordsContainer');
             const searchKeyword = document.getElementById('searchInput').value.toLowerCase();
@@ -515,7 +513,6 @@
 
             const processedRecords = allRecords.map(rec => {
                 const evtDateObj = new Date(rec.evtDate.year, rec.evtDate.month - 1, rec.evtDate.day);
-                // 自動判斷邏輯：如果事件日期已過，或者已「講掂數」，歸類為「已完成」
                 const isCompleted = (evtDateObj < today) || (rec.talkStatus === 'settled');
                 
                 if (isCompleted) completedCount++;
@@ -527,10 +524,8 @@
             document.getElementById('countOngoing').textContent = ongoingCount;
             document.getElementById('countCompleted').textContent = completedCount;
 
-            // 頁籤過濾
             let filtered = processedRecords.filter(r => currentTab === 'ongoing' ? !r.isCompletedCategory : r.isCompletedCategory);
 
-            // 關鍵字搜尋
             if (searchKeyword) {
                 filtered = filtered.filter(r => 
                     r.eventDetail.toLowerCase().includes(searchKeyword) ||
@@ -541,7 +536,6 @@
                 );
             }
 
-            // 日期排序 (按事件日期 / 記錄日期)
             filtered.sort((a, b) => {
                 const dateA = new Date(a[sortByField].year, a[sortByField].month - 1, a[sortByField].day).getTime();
                 const dateB = new Date(b[sortByField].year, b[sortByField].month - 1, b[sortByField].day).getTime();
@@ -606,7 +600,7 @@
             });
         };
 
-        // 切換進行中/已完成 Tab
+        // 切換 Tab
         window.switchTab = (tab) => {
             currentTab = tab;
             document.getElementById('tabOngoing').className = tab === 'ongoing' ? 'py-2.5 border-b-2 border-khaki-900 text-khaki-900' : 'py-2.5 border-b-2 border-transparent text-khaki-800/60';
@@ -614,7 +608,7 @@
             renderRecords();
         };
 
-        // 日期選單下拉生成器
+        // 下拉選單生成
         window.initDateDropdowns = () => {
             const days = Array.from({length: 31}, (_, i) => i + 1);
             const months = Array.from({length: 12}, (_, i) => i + 1);
@@ -637,7 +631,7 @@
             document.getElementById('evtYear').value = today.getFullYear();
         };
 
-        // 開啟彈窗
+        // 開啟 Modal
         window.openModal = (docId = null) => {
             document.getElementById('recordForm').reset();
             document.getElementById('imagePreviewContainer').classList.add('hidden');
