@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>小氣簿</title>
     
-    <!-- iOS PWA 主畫面 Icon 設定 -->
+    <!-- iOS PWA 主畫面 Icon 設定 (淺卡其色底 #E6DCC8 配白色筆記簿) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="小氣簿">
@@ -94,6 +94,7 @@
 
             <!-- 表單區 -->
             <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3 text-left">
+                <!-- 註冊專用：選擇以 Email 或 電話 註冊 -->
                 <div id="signupTypeContainer" class="hidden">
                     <label class="text-xs font-bold text-khaki-800">註冊方式：</label>
                     <div class="flex gap-4 pt-1 text-xs">
@@ -166,11 +167,13 @@
             
             <!-- 搜尋與排序控制列 -->
             <div class="space-y-2">
+                <!-- 搜尋列 -->
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-khaki-800/60 text-xs"></i>
                     <input type="text" id="searchInput" oninput="renderRecords()" placeholder="搜尋事件、內容、申訴人/被申訴人..." class="w-full pl-8 pr-3 py-1.5 bg-cream border border-khaki-300 rounded-lg text-xs text-khaki-900 focus:outline-none">
                 </div>
 
+                <!-- 排序選擇 -->
                 <div class="flex gap-2 text-xs">
                     <select id="sortByField" onchange="renderRecords()" class="flex-1 p-1.5 bg-cream border border-khaki-300 rounded text-khaki-900 focus:outline-none">
                         <option value="evtDate">按事件日期</option>
@@ -253,6 +256,7 @@
                         <span class="block mb-1">事件內容及經過：</span>
                         <textarea id="eventDetail" rows="3" required placeholder="請詳細寫下事情經過..." class="w-full p-2 bg-white border border-khaki-300 rounded resize-none"></textarea>
                         
+                        <!-- 圖片上傳 -->
                         <div class="mt-2">
                             <span class="block text-[10px] text-khaki-800/80 mb-1">上傳圖片（留底備查，選填）：</span>
                             <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)" class="w-full text-xs text-khaki-800">
@@ -306,24 +310,13 @@
         </div>
     </div>
 
-    <!-- 4. 成功提示 Popup Modal (填完!) -->
-    <div id="successPopup" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-cream w-full max-w-xs rounded-2xl shadow-2xl border border-khaki-300 p-6 text-center space-y-4">
-            <div class="w-12 h-12 bg-green-100 text-green-700 rounded-full flex items-center justify-center mx-auto text-2xl">
-                <i class="fa-solid fa-check"></i>
-            </div>
-            <h3 class="text-xl font-bold text-khaki-900">填完!</h3>
-            <p class="text-xs text-khaki-800">紀錄已成功保存並同步到你帳號！</p>
-            <button onclick="closeSuccessPopup()" class="w-full py-2.5 bg-khaki-900 text-cream font-bold text-xs rounded-lg shadow">確定</button>
-        </div>
-    </div>
-
-    <!-- Firebase SDK (已整合專屬 CDN 金鑰) -->
+    <!-- Firebase SDK (已整合你的專屬 CDN 金鑰) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // 你的專屬 Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyDHatHNGhqx75AxLweL39qiGOkI5AvoFvQ",
             authDomain: "smallbook-6e3d7.firebaseapp.com",
@@ -343,12 +336,13 @@
         let allRecords = [];
         let currentTab = 'ongoing';
         let currentBase64Image = "";
-        let unsubscribeListener = null;
 
+        // 處理 Google Redirect 登入結果
         getRedirectResult(auth).catch((err) => {
             if(err && err.code) alert("Google 登入失敗: " + err.message);
         });
 
+        // 監聽登入狀態
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) {
@@ -356,13 +350,12 @@
                 document.getElementById('appInterface').classList.remove('hidden');
                 listenToData();
             } else {
-                if(unsubscribeListener) unsubscribeListener();
-                allRecords = [];
                 document.getElementById('authOverlay').classList.remove('hidden');
                 document.getElementById('appInterface').classList.add('hidden');
             }
         });
 
+        // 切換登入 / 註冊 頁籤
         window.setAuthTab = (mode) => {
             window.currentAuthMode = mode;
             const isLogin = mode === 'login';
@@ -390,6 +383,7 @@
             }
         };
 
+        // 提交登入/註冊表單
         window.handleAuthSubmit = async (e) => {
             e.preventDefault();
             const accountInput = document.getElementById('authAccount').value.trim();
@@ -415,6 +409,7 @@
             }
         };
 
+        // Google 登入
         window.handleGoogleLogin = async () => {
             const provider = new GoogleAuthProvider();
             try {
@@ -428,21 +423,20 @@
             }
         };
 
+        // 登出
         window.handleLogout = () => signOut(auth);
 
+        // 實時監聽資料庫
         function listenToData() {
             if (!currentUser) return;
-            if(unsubscribeListener) unsubscribeListener();
-
             const q = query(collection(db, "records"), where("uid", "==", currentUser.uid));
-            unsubscribeListener = onSnapshot(q, (snapshot) => {
+            onSnapshot(q, (snapshot) => {
                 allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderRecords();
-            }, (error) => {
-                console.error("讀取資料失敗:", error);
             });
         }
 
+        // 圖片上傳預覽
         window.previewImage = (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -456,7 +450,7 @@
             }
         };
 
-        // 保存記錄並彈出「填完!」
+        // 保存小氣簿紀錄
         window.handleSaveRecord = async (e) => {
             e.preventDefault();
             const docId = document.getElementById('editDocId').value;
@@ -492,55 +486,39 @@
                     await addDoc(collection(db, "records"), recordData);
                 }
                 closeModal();
-                document.getElementById('successPopup').classList.remove('hidden');
             } catch (err) {
                 alert("儲存失敗: " + err.message);
             }
         };
 
-        window.closeSuccessPopup = () => {
-            document.getElementById('successPopup').classList.add('hidden');
-        };
-
+        // 刪除紀錄
         window.deleteRecord = async (docId) => {
             if (confirm("確定要刪除此筆記錄表嗎？")) {
                 await deleteDoc(doc(db, "records", docId));
             }
         };
 
-        // 取得香港時區 (UTC+8) 今日零時零分日期物件
-        function getHKTodayDate() {
-            const options = { timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit' };
-            const formatter = new Intl.DateTimeFormat('en-CA', options);
-            const hkDateStr = formatter.format(new Date()); // YYYY-MM-DD
-            const parts = hkDateStr.split('-');
-            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        }
-
-        // 渲染與香港時區自動分類邏輯
+        // 渲染與自動分類邏輯
         window.renderRecords = () => {
             const container = document.getElementById('recordsContainer');
             const searchKeyword = document.getElementById('searchInput').value.toLowerCase();
             const sortByField = document.getElementById('sortByField').value;
             const sortOrder = document.getElementById('sortOrder').value;
 
-            // 香港時區的今日零時日期
-            const hkToday = getHKTodayDate();
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
             let ongoingCount = 0;
             let completedCount = 0;
 
             const processedRecords = allRecords.map(rec => {
                 const evtDateObj = new Date(rec.evtDate.year, rec.evtDate.month - 1, rec.evtDate.day);
+                const isCompleted = (evtDateObj < today) || (rec.talkStatus === 'settled');
                 
-                // 條件2新邏輯：只有【事件日期在現實（香港時間）中已經過去】才算已完成！
-                // 即使選了「講掂數」，只要日期是今天或未來，依然留在「進行中」。
-                const isPast = evtDateObj < hkToday;
-                
-                if (isPast) completedCount++;
+                if (isCompleted) completedCount++;
                 else ongoingCount++;
 
-                return { ...rec, isCompletedCategory: isPast };
+                return { ...rec, isCompletedCategory: isCompleted };
             });
 
             document.getElementById('countOngoing').textContent = ongoingCount;
@@ -622,6 +600,7 @@
             });
         };
 
+        // 切換 Tab
         window.switchTab = (tab) => {
             currentTab = tab;
             document.getElementById('tabOngoing').className = tab === 'ongoing' ? 'py-2.5 border-b-2 border-khaki-900 text-khaki-900' : 'py-2.5 border-b-2 border-transparent text-khaki-800/60';
@@ -629,6 +608,7 @@
             renderRecords();
         };
 
+        // 下拉選單生成
         window.initDateDropdowns = () => {
             const days = Array.from({length: 31}, (_, i) => i + 1);
             const months = Array.from({length: 12}, (_, i) => i + 1);
@@ -651,6 +631,7 @@
             document.getElementById('evtYear').value = today.getFullYear();
         };
 
+        // 開啟 Modal
         window.openModal = (docId = null) => {
             document.getElementById('recordForm').reset();
             document.getElementById('imagePreviewContainer').classList.add('hidden');
