@@ -313,7 +313,7 @@
                 <i class="fa-solid fa-check"></i>
             </div>
             <h3 class="text-xl font-bold text-khaki-900">填完!</h3>
-            <p class="text-xs text-khaki-800">紀錄已成功保存並同步！</p>
+            <p class="text-xs text-khaki-800">紀錄已成功保存並同步到你帳號！</p>
             <button onclick="closeSuccessPopup()" class="w-full py-2.5 bg-khaki-900 text-cream font-bold text-xs rounded-lg shadow">確定</button>
         </div>
     </div>
@@ -343,6 +343,7 @@
         let allRecords = [];
         let currentTab = 'ongoing';
         let currentBase64Image = "";
+        let unsubscribeListener = null;
 
         getRedirectResult(auth).catch((err) => {
             if(err && err.code) alert("Google 登入失敗: " + err.message);
@@ -355,6 +356,8 @@
                 document.getElementById('appInterface').classList.remove('hidden');
                 listenToData();
             } else {
+                if(unsubscribeListener) unsubscribeListener();
+                allRecords = [];
                 document.getElementById('authOverlay').classList.remove('hidden');
                 document.getElementById('appInterface').classList.add('hidden');
             }
@@ -429,10 +432,14 @@
 
         function listenToData() {
             if (!currentUser) return;
+            if(unsubscribeListener) unsubscribeListener();
+
             const q = query(collection(db, "records"), where("uid", "==", currentUser.uid));
-            onSnapshot(q, (snapshot) => {
+            unsubscribeListener = onSnapshot(q, (snapshot) => {
                 allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderRecords();
+            }, (error) => {
+                console.error("讀取資料失敗:", error);
             });
         }
 
@@ -501,11 +508,11 @@
             }
         };
 
-        // 取得香港時區 (UTC+8) 今日零時零分日期
+        // 取得香港時區 (UTC+8) 今日零時零分日期物件
         function getHKTodayDate() {
             const options = { timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit' };
-            const formatter = new Intl.DateTimeFormat('en-CA', options); // YYYY-MM-DD 格式
-            const hkDateStr = formatter.format(new Date()); // 例如 "2026-09-03"
+            const formatter = new Intl.DateTimeFormat('en-CA', options);
+            const hkDateStr = formatter.format(new Date()); // YYYY-MM-DD
             const parts = hkDateStr.split('-');
             return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
         }
@@ -524,17 +531,16 @@
             let completedCount = 0;
 
             const processedRecords = allRecords.map(rec => {
-                // 將事件日期轉換為 Date 物件比較
                 const evtDateObj = new Date(rec.evtDate.year, rec.evtDate.month - 1, rec.evtDate.day);
                 
-                // 條件：事件日期在香港現實日期已過去 (evtDateObj < hkToday)，或者 溝通結果為「講掂數」
+                // 條件2新邏輯：只有【事件日期在現實（香港時間）中已經過去】才算已完成！
+                // 即使選了「講掂數」，只要日期是今天或未來，依然留在「進行中」。
                 const isPast = evtDateObj < hkToday;
-                const isCompleted = isPast || (rec.talkStatus === 'settled');
                 
-                if (isCompleted) completedCount++;
+                if (isPast) completedCount++;
                 else ongoingCount++;
 
-                return { ...rec, isCompletedCategory: isCompleted };
+                return { ...rec, isCompletedCategory: isPast };
             });
 
             document.getElementById('countOngoing').textContent = ongoingCount;
