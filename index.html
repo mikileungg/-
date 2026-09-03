@@ -1,700 +1,275 @@
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>小氣簿</title>
-    
-    <!-- iOS PWA 主畫面 Icon 設定 -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="小氣簿">
-    <link rel="apple-touch-icon" sizes="180x180" href="https://api.iconify.design/lucide:notebook-pen.svg?color=%23FFFFFF&width=180&background=%23E6DCC8">
-    <link rel="icon" type="image/svg+xml" href="https://api.iconify.design/lucide:notebook-pen.svg?color=%23E6DCC8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petty Book</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f5f5f7;
+      margin: 0;
+      padding: 16px;
+      color: #1d1d1f;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #0071e3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #a1a1a6;
+    }
+    .auth-section {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e5e5e5;
+      text-align: center;
+    }
+    .tab-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: #e5e5ea;
+      color: #1d1d1f;
+    }
+    .tab-btn.active {
+      background: #0071e3;
+      color: white;
+    }
+    .record-card {
+      border: 1px solid #e5e5e5;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #fafafa;
+    }
+  </style>
 
-    <!-- Tailwind CSS & Font Awesome -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts: 思源宋體 Noto Serif TC -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <!-- Firebase SDK (CDN Version) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        khaki: {
-                            50: '#FBF9F5',
-                            100: '#F5F0E6',
-                            200: '#E6DCC8',
-                            300: '#D8C8A8',
-                            800: '#5C5243',
-                            900: '#3D352A'
-                        },
-                        cream: '#FDFBF7'
-                    },
-                    fontFamily: {
-                        serif: ['"Noto Serif TC"', 'serif']
-                    }
-                }
-            }
+    // 替換為你的 Firebase 專案配置
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "smallbook-6e3d7.firebaseapp.com",
+      projectId: "smallbook-6e3d7",
+      storageBucket: "smallbook-6e3d7.appspot.com",
+      messagingSenderId: "679240518674",
+      appId: "1:679240518674:web:92cecfb5c46009b5c1",
+      measurementId: "G-F8GY0D1Q2N"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let currentUser = null;
+
+    // 監聽登入狀態（確保帳號獨立存取）
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+      const authBtn = document.getElementById("authBtn");
+      const userStatus = document.getElementById("userStatus");
+      const submitBtn = document.getElementById("submitBtn");
+
+      if (user) {
+        userStatus.textContent = `已登入：${user.email || user.displayName}`;
+        authBtn.textContent = "登出";
+        submitBtn.disabled = false;
+        loadRecords();
+      } else {
+        userStatus.textContent = "未登入";
+        authBtn.textContent = "Google 登入";
+        submitBtn.disabled = true;
+        document.getElementById("recordList").innerHTML = "<p>請先登入以檢視紀錄。</p>";
+      }
+    });
+
+    // 登入 / 登出 切換
+    document.getElementById("authBtn").addEventListener("click", () => {
+      if (currentUser) {
+        signOut(auth);
+      } else {
+        const provider = new GoogleAuthProvider();
+        signInWithPopup(auth, provider).catch((error) => alert("登入失敗: " + error.message));
+      }
+    });
+
+    // 計算香港時間判定狀態
+    function computeStatus(eventDateStr) {
+      // 取得香港時區當前日期 (YYYY-MM-DD)
+      const todayHK = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Hong_Kong' });
+      
+      // 只有當事件日期嚴格小於香港今天日期（已過去），才算已完成
+      if (eventDateStr < todayHK) {
+        return "已完成";
+      } else {
+        return "進行中"; // 即使選了「✔ 講掂數」，未過期前一律為「進行中」
+      }
+    }
+
+    // 表單提交處理
+    document.getElementById("pettyForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentUser) return alert("請先登入！");
+
+      const title = document.getElementById("title").value;
+      const eventDate = document.getElementById("eventDate").value;
+      const result = document.getElementById("result").value;
+
+      try {
+        // 寫入資料庫並綁定 UID（確保獨立個體與登出後保留）
+        await addDoc(collection(db, "records"), {
+          uid: currentUser.uid,
+          title: title,
+          eventDate: eventDate,
+          result: result,
+          createdAt: new Date().toISOString()
+        });
+
+        // 1. 彈出提示顯示「填完!」
+        alert("填完!");
+
+        // 2. 自動重置與更新版面 (重置表單並刷新列表)
+        document.getElementById("pettyForm").reset();
+        await loadRecords();
+
+      } catch (error) {
+        alert("儲存失敗: " + error.message);
+      }
+    });
+
+    // 載入紀錄與分類頁籤處理
+    let currentTab = "進行中";
+    window.switchTab = function(tab) {
+      currentTab = tab;
+      document.getElementById("tabPending").classList.toggle("active", tab === "進行中");
+      document.getElementById("tabCompleted").classList.toggle("active", tab === "已完成");
+      loadRecords();
+    };
+
+    async function loadRecords() {
+      if (!currentUser) return;
+
+      const q = query(collection(db, "records"), where("uid", "==", currentUser.uid));
+      const querySnapshot = await getDocs(q);
+      const listContainer = document.getElementById("recordList");
+      listContainer.innerHTML = "";
+
+      let count = 0;
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const calculatedStatus = computeStatus(data.eventDate);
+
+        // 根據香港時間算出的狀態進行分類過濾
+        if (calculatedStatus === currentTab) {
+          count++;
+          const card = document.createElement("div");
+          card.className = "record-card";
+          card.innerHTML = `
+            <strong>${data.title}</strong><br>
+            <small>日期：${data.eventDate} | 溝通：${data.result}</small>
+          `;
+          listContainer.appendChild(card);
         }
-    </script>
+      });
 
-    <style>
-        body {
-            font-family: 'Noto Serif TC', serif;
-            background-color: #F5F0E6;
-            color: #3D352A;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .paper-a4 {
-            background-color: #FDFBF7;
-            background-image: 
-                radial-gradient(#E6DCC8 0.75px, transparent 0.75px),
-                linear-gradient(to right, rgba(0,0,0,0.01) 1px, transparent 1px);
-            background-size: 16px 16px, 100% 100%;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 25px -5px rgba(61, 53, 42, 0.12);
-            border: 1px solid #D8C8A8;
-        }
-
-        .paper-table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        .paper-table th, .paper-table td {
-            border: 1px solid #3D352A;
-            padding: 8px 10px;
-        }
-
-        .pt-safe { padding-top: env(safe-area-inset-top, 16px); }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
-    </style>
+      if (count === 0) {
+        listContainer.innerHTML = `<p>暫無【${currentTab}】紀錄</p>`;
+      }
+    }
+  </script>
 </head>
-<body class="min-h-screen flex flex-col justify-between">
+<body>
 
-    <!-- 1. 登入 / 註冊 畫面遮罩 -->
-    <div id="authOverlay" class="fixed inset-0 z-50 bg-khaki-100 flex items-center justify-center p-4">
-        <div class="bg-cream w-full max-w-sm rounded-2xl shadow-xl border border-khaki-300 p-6 space-y-4 text-center">
-            <div class="space-y-1">
-                <i class="fa-solid fa-book-bookmark text-4xl text-khaki-900"></i>
-                <h2 class="text-2xl font-black text-khaki-900 tracking-wider">小氣簿</h2>
-                <p class="text-xs text-khaki-800">登入帳號以查看及同步個人紀錄</p>
-            </div>
+  <div class="container">
+    <h2>Petty Book</h2>
 
-            <!-- 切換 登入 / 註冊 頁籤 -->
-            <div class="flex border-b border-khaki-300 text-xs font-bold">
-                <button id="tabAuthLogin" onclick="setAuthTab('login')" class="flex-1 py-2 border-b-2 border-khaki-900 text-khaki-900">帳號登入</button>
-                <button id="tabAuthSignup" onclick="setAuthTab('signup')" class="flex-1 py-2 border-b-2 border-transparent text-khaki-800/60">自訂註冊</button>
-            </div>
-
-            <!-- 表單區 -->
-            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3 text-left">
-                <div id="signupTypeContainer" class="hidden">
-                    <label class="text-xs font-bold text-khaki-800">註冊方式：</label>
-                    <div class="flex gap-4 pt-1 text-xs">
-                        <label class="flex items-center space-x-1 cursor-pointer"><input type="radio" name="accountType" value="email" checked onchange="toggleAccountInput()" class="accent-khaki-900"><span>電郵 (Email)</span></label>
-                        <label class="flex items-center space-x-1 cursor-pointer"><input type="radio" name="accountType" value="phone" onchange="toggleAccountInput()" class="accent-khaki-900"><span>電話號碼</span></label>
-                    </div>
-                </div>
-
-                <div>
-                    <label id="accountLabel" class="text-xs font-bold text-khaki-800">電郵 / 帳號</label>
-                    <input type="text" id="authAccount" required placeholder="example@email.com 或 電話" class="w-full p-2 bg-white border border-khaki-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-khaki-900">
-                </div>
-
-                <div>
-                    <label class="text-xs font-bold text-khaki-800">自訂密碼</label>
-                    <input type="password" id="authPassword" required placeholder="******" class="w-full p-2 bg-white border border-khaki-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-khaki-900">
-                </div>
-
-                <button type="submit" id="authSubmitBtn" class="w-full py-2.5 bg-khaki-900 text-cream rounded-lg font-bold text-xs shadow mt-2">登入帳號</button>
-            </form>
-
-            <div class="relative flex py-1 items-center">
-                <div class="flex-grow border-t border-khaki-300"></div>
-                <span class="flex-shrink mx-2 text-xs text-khaki-800">或</span>
-                <div class="flex-grow border-t border-khaki-300"></div>
-            </div>
-
-            <!-- Google Gmail 登入按鈕 -->
-            <button onclick="handleGoogleLogin()" class="w-full py-2.5 bg-white border border-khaki-300 rounded-lg shadow-sm flex items-center justify-center space-x-2 active:bg-gray-50">
-                <i class="fa-brands fa-google text-red-500"></i>
-                <span class="text-xs font-bold text-khaki-900">連結 Gmail 登入 / 註冊</span>
-            </button>
-            <p class="text-[10px] text-khaki-800/70">支援 Safari 及 iPhone iCloud 私密轉送 (隱藏 IP)</p>
-        </div>
+    <!-- 帳號登入區域 -->
+    <div class="auth-section">
+      <span id="userStatus">載入中...</span><br><br>
+      <button id="authBtn">Google 登入</button>
     </div>
 
-    <!-- 2. 主 App 介面 -->
-    <div id="appInterface" class="hidden flex-1 flex flex-col">
-        <!-- 頂部 Header -->
-        <header class="sticky top-0 z-30 bg-khaki-200/90 backdrop-blur-md border-b border-khaki-300 px-4 py-3 pt-safe shadow-sm">
-            <div class="max-w-md mx-auto flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-book-bookmark text-khaki-900 text-xl"></i>
-                    <h1 class="text-xl font-bold tracking-wider text-khaki-900">小氣簿</h1>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <button onclick="handleLogout()" title="登出" class="text-xs text-khaki-800 underline">登出</button>
-                    <!-- 右上角 + 新增按鈕 -->
-                    <button onclick="openModal()" class="w-9 h-9 rounded-full bg-khaki-900 text-cream flex items-center justify-center shadow-md active:scale-95 transition-transform">
-                        <i class="fa-solid fa-plus text-base"></i>
-                    </button>
-                </div>
-            </div>
-        </header>
+    <!-- 輸入表單 -->
+    <form id="pettyForm">
+      <div class="form-group">
+        <label for="title">項目標題</label>
+        <input type="text" id="title" required placeholder="輸入紀錄事項">
+      </div>
 
-        <!-- 置頂：分類頁籤 (進行中 vs 已完成) -->
-        <div class="bg-khaki-100 border-b border-khaki-300 sticky top-[57px] z-20">
-            <div class="max-w-md mx-auto grid grid-cols-2 text-center text-sm font-bold">
-                <button id="tabOngoing" onclick="switchTab('ongoing')" class="py-2.5 border-b-2 border-khaki-900 text-khaki-900">
-                    進行中 (<span id="countOngoing">0</span>)
-                </button>
-                <button id="tabCompleted" onclick="switchTab('completed')" class="py-2.5 border-b-2 border-transparent text-khaki-800/60">
-                    已完成 (<span id="countCompleted">0</span>)
-                </button>
-            </div>
-        </div>
+      <div class="form-group">
+        <label for="eventDate">事件日期</label>
+        <input type="date" id="eventDate" required>
+      </div>
 
-        <!-- 主內容區 -->
-        <main class="flex-1 max-w-md w-full mx-auto p-4 space-y-4 pb-20">
-            
-            <!-- 搜尋與排序控制列 -->
-            <div class="space-y-2">
-                <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-khaki-800/60 text-xs"></i>
-                    <input type="text" id="searchInput" oninput="renderRecords()" placeholder="搜尋事件、內容、申訴人/被申訴人..." class="w-full pl-8 pr-3 py-1.5 bg-cream border border-khaki-300 rounded-lg text-xs text-khaki-900 focus:outline-none">
-                </div>
+      <div class="form-group">
+        <label for="result">溝通結果</label>
+        <select id="result">
+          <option value="進行中">待溝通</option>
+          <option value="✔ 講掂數">✔ 講掂數</option>
+          <option value="❌ 談崩了">❌ 談崩了</option>
+        </select>
+      </div>
 
-                <div class="flex gap-2 text-xs">
-                    <select id="sortByField" onchange="renderRecords()" class="flex-1 p-1.5 bg-cream border border-khaki-300 rounded text-khaki-900 focus:outline-none">
-                        <option value="evtDate">按事件日期</option>
-                        <option value="recDate">按記錄日期</option>
-                    </select>
-                    <select id="sortOrder" onchange="renderRecords()" class="flex-1 p-1.5 bg-cream border border-khaki-300 rounded text-khaki-900 focus:outline-none">
-                        <option value="desc">日期近至遠 (最新優先)</option>
-                        <option value="asc">日期遠至近 (舊紀錄優先)</option>
-                    </select>
-                </div>
-            </div>
+      <button type="submit" id="submitBtn" disabled>儲存紀錄</button>
+    </form>
 
-            <!-- 紀錄列表容器 -->
-            <div id="recordsContainer" class="space-y-6"></div>
+    <hr style="margin: 24px 0; border: 0; border-top: 1px solid #e5e5e5;">
 
-            <!-- 空狀態 -->
-            <div id="emptyState" class="hidden text-center py-12 text-khaki-800/60">
-                <i class="fa-regular fa-folder-open text-3xl mb-2"></i>
-                <p class="text-sm">此分類下暫無紀錄</p>
-            </div>
-        </main>
+    <!-- 分類分類頁籤 (進行中 / 已完成) -->
+    <div class="tab-group">
+      <button type="button" class="tab-btn active" id="tabPending" onclick="switchTab('進行中')">進行中</button>
+      <button type="button" class="tab-btn" id="tabCompleted" onclick="switchTab('已完成')">已完成</button>
     </div>
 
-    <!-- 3. 新增 / 編輯 彈窗 Modal -->
-    <div id="recordModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="bg-cream w-full max-w-md max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-2xl shadow-2xl border border-khaki-300 overflow-hidden">
-            
-            <div class="bg-khaki-200 px-4 py-3 border-b border-khaki-300 flex justify-between items-center">
-                <h2 id="modalTitle" class="font-bold text-khaki-900">小氣簿記錄表</h2>
-                <button onclick="closeModal()" class="text-khaki-800 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <form id="recordForm" onsubmit="handleSaveRecord(event)" class="p-4 space-y-4 overflow-y-auto flex-1 text-xs text-khaki-900">
-                <input type="hidden" id="editDocId">
-
-                <!-- 第一部分 -->
-                <div class="p-3 bg-khaki-100/50 rounded-lg border border-khaki-300 space-y-3">
-                    <div class="font-bold text-khaki-900 border-b border-khaki-300 pb-1">【 第一部分 】</div>
-                    
-                    <div>
-                        <span class="block mb-1">記錄日期：</span>
-                        <div class="grid grid-cols-3 gap-1">
-                            <select id="recDay" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
-                            <select id="recMonth" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
-                            <select id="recYear" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <span class="block mb-1">記錄者：</span>
-                        <select id="recorder" class="w-full p-1.5 bg-white border border-khaki-300 rounded">
-                            <option value="Miki">Miki</option>
-                            <option value="Sunny">Sunny</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- 第二部分 -->
-                <div class="p-3 bg-khaki-100/50 rounded-lg border border-khaki-300 space-y-3">
-                    <div class="font-bold text-khaki-900 border-b border-khaki-300 pb-1">【 第二部分 】</div>
-
-                    <div>
-                        <span class="block mb-1">事件日期：</span>
-                        <div class="grid grid-cols-3 gap-1">
-                            <select id="evtDay" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
-                            <select id="evtMonth" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
-                            <select id="evtYear" class="p-1.5 bg-white border border-khaki-300 rounded"></select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <span class="block mb-1">事件類型：</span>
-                        <div class="flex gap-4 pt-1">
-                            <label class="flex items-center space-x-1 cursor-pointer"><input type="radio" name="eventType" value="日常爭執" checked class="accent-khaki-900"><span>日常爭執</span></label>
-                            <label class="flex items-center space-x-1 cursor-pointer"><input type="radio" name="eventType" value="協商事件" class="accent-khaki-900"><span>協商事件</span></label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <span class="block mb-1">事件內容及經過：</span>
-                        <textarea id="eventDetail" rows="3" required placeholder="請詳細寫下事情經過..." class="w-full p-2 bg-white border border-khaki-300 rounded resize-none"></textarea>
-                        
-                        <div class="mt-2">
-                            <span class="block text-[10px] text-khaki-800/80 mb-1">上傳圖片（留底備查，選填）：</span>
-                            <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)" class="w-full text-xs text-khaki-800">
-                            <div id="imagePreviewContainer" class="mt-2 hidden">
-                                <img id="imagePreview" src="" class="max-h-32 rounded border border-khaki-300 object-cover">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <span class="block mb-1">補償 / 解決方案（選填）：</span>
-                        <textarea id="solutionDetail" rows="2" placeholder="如沒有可留空，仍可正常提交..." class="w-full p-2 bg-white border border-khaki-300 rounded resize-none"></textarea>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <span class="block mb-1">申訴人：</span>
-                            <select id="complainant" class="w-full p-1.5 bg-white border border-khaki-300 rounded">
-                                <option value="Miki">Miki</option>
-                                <option value="Sunny">Sunny</option>
-                            </select>
-                        </div>
-                        <div>
-                            <span class="block mb-1">被申訴人：</span>
-                            <select id="respondent" class="w-full p-1.5 bg-white border border-khaki-300 rounded">
-                                <option value="Sunny">Sunny</option>
-                                <option value="Miki">Miki</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <span class="block mb-1">溝通結果：</span>
-                        <div class="flex gap-4 pt-1">
-                            <label class="flex items-center space-x-1 cursor-pointer"><input type="radio" name="talkStatus" value="settled" checked class="accent-khaki-900"><span class="text-green-700 font-bold">✔ 講掂數</span></label>
-                            <label class="flex items-center space-x-1 cursor-pointer"><input type="radio" name="talkStatus" value="unsettled" class="accent-khaki-900"><span class="text-red-700 font-bold">✖ 未講掂數</span></label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <span class="block mb-1">其他備註（選填）：</span>
-                        <input type="text" id="remarks" placeholder="補充備註，可留空..." class="w-full p-1.5 bg-white border border-khaki-300 rounded">
-                    </div>
-                </div>
-
-                <div class="pt-2 flex gap-2">
-                    <button type="button" onclick="closeModal()" class="flex-1 py-2 bg-khaki-200 text-khaki-900 rounded border border-khaki-300 font-bold">取消</button>
-                    <button type="submit" class="flex-1 py-2 bg-khaki-900 text-cream rounded font-bold shadow">保存記錄</button>
-                </div>
-            </form>
-        </div>
+    <!-- 紀錄清單顯示區 -->
+    <div id="recordList">
+      <p>請先登入以檢視紀錄。</p>
     </div>
+  </div>
 
-    <!-- 4. 成功提示 Popup Modal (填完!) -->
-    <div id="successPopup" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-cream w-full max-w-xs rounded-2xl shadow-2xl border border-khaki-300 p-6 text-center space-y-4">
-            <div class="w-12 h-12 bg-green-100 text-green-700 rounded-full flex items-center justify-center mx-auto text-2xl">
-                <i class="fa-solid fa-check"></i>
-            </div>
-            <h3 class="text-xl font-bold text-khaki-900">填完!</h3>
-            <p class="text-xs text-khaki-800">紀錄已成功保存並同步到你帳號！</p>
-            <button onclick="closeSuccessPopup()" class="w-full py-2.5 bg-khaki-900 text-cream font-bold text-xs rounded-lg shadow">確定</button>
-        </div>
-    </div>
-
-    <!-- Firebase SDK (已整合專屬 CDN 金鑰) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDHatHNGhqx75AxLweL39qiGOkI5AvoFvQ",
-            authDomain: "smallbook-6e3d7.firebaseapp.com",
-            projectId: "smallbook-6e3d7",
-            storageBucket: "smallbook-6e3d7.firebasestorage.app",
-            messagingSenderId: "679240518674",
-            appId: "1:679240518674:web:92cecfb5c46009b5c19ccb",
-            measurementId: "G-F8GY0D1Q2N"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        window.currentAuthMode = 'login';
-        let currentUser = null;
-        let allRecords = [];
-        let currentTab = 'ongoing';
-        let currentBase64Image = "";
-        let unsubscribeListener = null;
-
-        getRedirectResult(auth).catch((err) => {
-            if(err && err.code) alert("Google 登入失敗: " + err.message);
-        });
-
-        onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user) {
-                document.getElementById('authOverlay').classList.add('hidden');
-                document.getElementById('appInterface').classList.remove('hidden');
-                listenToData();
-            } else {
-                if(unsubscribeListener) unsubscribeListener();
-                allRecords = [];
-                document.getElementById('authOverlay').classList.remove('hidden');
-                document.getElementById('appInterface').classList.add('hidden');
-            }
-        });
-
-        window.setAuthTab = (mode) => {
-            window.currentAuthMode = mode;
-            const isLogin = mode === 'login';
-            document.getElementById('tabAuthLogin').className = isLogin ? 'flex-1 py-2 border-b-2 border-khaki-900 text-khaki-900' : 'flex-1 py-2 border-b-2 border-transparent text-khaki-800/60';
-            document.getElementById('tabAuthSignup').className = !isLogin ? 'flex-1 py-2 border-b-2 border-khaki-900 text-khaki-900' : 'flex-1 py-2 border-b-2 border-transparent text-khaki-800/60';
-            document.getElementById('signupTypeContainer').classList.toggle('hidden', isLogin);
-            document.getElementById('authSubmitBtn').textContent = isLogin ? '登入帳號' : '建立並註冊帳號';
-            toggleAccountInput();
-        };
-
-        window.toggleAccountInput = () => {
-            const isSignup = window.currentAuthMode === 'signup';
-            const selectedType = document.querySelector('input[name="accountType"]:checked')?.value;
-            const label = document.getElementById('accountLabel');
-            const input = document.getElementById('authAccount');
-
-            if (isSignup && selectedType === 'phone') {
-                label.textContent = "電話號碼";
-                input.placeholder = "例如: 91234567";
-                input.type = "tel";
-            } else {
-                label.textContent = "電郵 (Email)";
-                input.placeholder = "example@email.com";
-                input.type = "email";
-            }
-        };
-
-        window.handleAuthSubmit = async (e) => {
-            e.preventDefault();
-            const accountInput = document.getElementById('authAccount').value.trim();
-            const password = document.getElementById('authPassword').value;
-
-            let emailToUse = accountInput;
-            if (window.currentAuthMode === 'signup' && document.querySelector('input[name="accountType"]:checked').value === 'phone') {
-                const cleanPhone = accountInput.replace(/\D/g, '');
-                emailToUse = `phone_${cleanPhone}@smallbook.app`;
-            } else if (!emailToUse.includes('@')) {
-                const cleanPhone = accountInput.replace(/\D/g, '');
-                if (cleanPhone) emailToUse = `phone_${cleanPhone}@smallbook.app`;
-            }
-
-            try {
-                if (window.currentAuthMode === 'login') {
-                    await signInWithEmailAndPassword(auth, emailToUse, password);
-                } else {
-                    await createUserWithEmailAndPassword(auth, emailToUse, password);
-                }
-            } catch (err) {
-                alert("驗證錯誤: " + err.message);
-            }
-        };
-
-        window.handleGoogleLogin = async () => {
-            const provider = new GoogleAuthProvider();
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (err) {
-                if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-                    await signInWithRedirect(auth, provider);
-                } else {
-                    alert("Google 登入失敗: " + err.message);
-                }
-            }
-        };
-
-        window.handleLogout = () => signOut(auth);
-
-        function listenToData() {
-            if (!currentUser) return;
-            if(unsubscribeListener) unsubscribeListener();
-
-            const q = query(collection(db, "records"), where("uid", "==", currentUser.uid));
-            unsubscribeListener = onSnapshot(q, (snapshot) => {
-                allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderRecords();
-            }, (error) => {
-                console.error("讀取資料失敗:", error);
-            });
-        }
-
-        window.previewImage = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    currentBase64Image = reader.result;
-                    document.getElementById('imagePreview').src = currentBase64Image;
-                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        // 保存記錄並彈出「填完!」
-        window.handleSaveRecord = async (e) => {
-            e.preventDefault();
-            const docId = document.getElementById('editDocId').value;
-
-            const recordData = {
-                uid: currentUser.uid,
-                recDate: {
-                    day: parseInt(document.getElementById('recDay').value),
-                    month: parseInt(document.getElementById('recMonth').value),
-                    year: parseInt(document.getElementById('recYear').value)
-                },
-                recorder: document.getElementById('recorder').value,
-                evtDate: {
-                    day: parseInt(document.getElementById('evtDay').value),
-                    month: parseInt(document.getElementById('evtMonth').value),
-                    year: parseInt(document.getElementById('evtYear').value)
-                },
-                eventType: document.querySelector('input[name="eventType"]:checked').value,
-                eventDetail: document.getElementById('eventDetail').value.trim(),
-                imageUrl: currentBase64Image,
-                solutionDetail: document.getElementById('solutionDetail').value.trim(),
-                complainant: document.getElementById('complainant').value,
-                respondent: document.getElementById('respondent').value,
-                talkStatus: document.querySelector('input[name="talkStatus"]:checked').value,
-                remarks: document.getElementById('remarks').value.trim(),
-                createdAt: Date.now()
-            };
-
-            try {
-                if (docId) {
-                    await updateDoc(doc(db, "records", docId), recordData);
-                } else {
-                    await addDoc(collection(db, "records"), recordData);
-                }
-                closeModal();
-                document.getElementById('successPopup').classList.remove('hidden');
-            } catch (err) {
-                alert("儲存失敗: " + err.message);
-            }
-        };
-
-        window.closeSuccessPopup = () => {
-            document.getElementById('successPopup').classList.add('hidden');
-        };
-
-        window.deleteRecord = async (docId) => {
-            if (confirm("確定要刪除此筆記錄表嗎？")) {
-                await deleteDoc(doc(db, "records", docId));
-            }
-        };
-
-        // 取得香港時區 (UTC+8) 今日零時零分日期物件
-        function getHKTodayDate() {
-            const options = { timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit' };
-            const formatter = new Intl.DateTimeFormat('en-CA', options);
-            const hkDateStr = formatter.format(new Date()); // YYYY-MM-DD
-            const parts = hkDateStr.split('-');
-            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        }
-
-        // 渲染與香港時區自動分類邏輯
-        window.renderRecords = () => {
-            const container = document.getElementById('recordsContainer');
-            const searchKeyword = document.getElementById('searchInput').value.toLowerCase();
-            const sortByField = document.getElementById('sortByField').value;
-            const sortOrder = document.getElementById('sortOrder').value;
-
-            // 香港時區的今日零時日期
-            const hkToday = getHKTodayDate();
-
-            let ongoingCount = 0;
-            let completedCount = 0;
-
-            const processedRecords = allRecords.map(rec => {
-                const evtDateObj = new Date(rec.evtDate.year, rec.evtDate.month - 1, rec.evtDate.day);
-                
-                // 條件2新邏輯：只有【事件日期在現實（香港時間）中已經過去】才算已完成！
-                // 即使選了「講掂數」，只要日期是今天或未來，依然留在「進行中」。
-                const isPast = evtDateObj < hkToday;
-                
-                if (isPast) completedCount++;
-                else ongoingCount++;
-
-                return { ...rec, isCompletedCategory: isPast };
-            });
-
-            document.getElementById('countOngoing').textContent = ongoingCount;
-            document.getElementById('countCompleted').textContent = completedCount;
-
-            let filtered = processedRecords.filter(r => currentTab === 'ongoing' ? !r.isCompletedCategory : r.isCompletedCategory);
-
-            if (searchKeyword) {
-                filtered = filtered.filter(r => 
-                    r.eventDetail.toLowerCase().includes(searchKeyword) ||
-                    r.complainant.toLowerCase().includes(searchKeyword) ||
-                    r.respondent.toLowerCase().includes(searchKeyword) ||
-                    r.eventType.toLowerCase().includes(searchKeyword) ||
-                    (r.remarks && r.remarks.toLowerCase().includes(searchKeyword))
-                );
-            }
-
-            filtered.sort((a, b) => {
-                const dateA = new Date(a[sortByField].year, a[sortByField].month - 1, a[sortByField].day).getTime();
-                const dateB = new Date(b[sortByField].year, b[sortByField].month - 1, b[sortByField].day).getTime();
-                return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-            });
-
-            container.innerHTML = '';
-            document.getElementById('emptyState').classList.toggle('hidden', filtered.length > 0);
-
-            filtered.forEach(rec => {
-                const card = document.createElement('div');
-                card.className = 'paper-a4 rounded-lg p-4 space-y-3';
-
-                const recDateStr = `${rec.recDate.day}號 / ${rec.recDate.month}月 / ${rec.recDate.year}年`;
-                const evtDateStr = `${rec.evtDate.day}號 / ${rec.evtDate.month}月 / ${rec.evtDate.year}年`;
-
-                const statusTag = rec.talkStatus === 'settled' 
-                    ? `<span class="text-green-700 font-bold border border-green-700/40 bg-green-50 px-1.5 py-0.5 rounded text-[11px]">✔ 講掂數</span>` 
-                    : `<span class="text-red-700 font-bold border border-red-700/40 bg-red-50 px-1.5 py-0.5 rounded text-[11px]">✖ 未講掂數</span>`;
-
-                card.innerHTML = `
-                    <div class="border-b-2 border-khaki-900 pb-2 flex justify-between items-center">
-                        <h2 class="font-black text-base text-khaki-900 tracking-wider">小氣簿記錄表</h2>
-                        <div class="flex items-center space-x-2 text-xs">
-                            <button onclick="openModal('${rec.id}')" class="text-khaki-800"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button onclick="deleteRecord('${rec.id}')" class="text-red-700"><i class="fa-solid fa-trash-can"></i></button>
-                        </div>
-                    </div>
-
-                    <table class="paper-table text-xs text-khaki-900">
-                        <tbody>
-                            <tr class="bg-khaki-200/40 font-bold"><td colspan="2">【 第一部分 】</td></tr>
-                            <tr><td class="w-1/3 bg-khaki-100 font-bold">記錄日期</td><td>${recDateStr}</td></tr>
-                            <tr><td class="bg-khaki-100 font-bold">記錄者</td><td>${rec.recorder}</td></tr>
-
-                            <tr class="bg-khaki-200/40 font-bold"><td colspan="2">【 第二部分 】</td></tr>
-                            <tr><td class="bg-khaki-100 font-bold">事件日期</td><td>${evtDateStr}</td></tr>
-                            <tr><td class="bg-khaki-100 font-bold">事件類型</td><td>${rec.eventType}</td></tr>
-                            <tr><td class="bg-khaki-100 font-bold">申訴人 / 被申訴人</td><td>${rec.complainant} ➔ ${rec.respondent}</td></tr>
-                            <tr><td class="bg-khaki-100 font-bold">溝通結果</td><td>${statusTag}</td></tr>
-                            
-                            <tr><td colspan="2" class="bg-khaki-100 font-bold border-b-0">事件內容及經過：</td></tr>
-                            <tr>
-                                <td colspan="2" class="whitespace-pre-wrap bg-white/50 p-2">
-                                    ${escapeHtml(rec.eventDetail)}
-                                    ${rec.imageUrl ? `<img src="${rec.imageUrl}" class="mt-2 max-h-40 rounded border border-khaki-300">` : ''}
-                                </td>
-                            </tr>
-
-                            ${rec.solutionDetail ? `
-                                <tr><td colspan="2" class="bg-khaki-100 font-bold border-b-0">補償 / 解決方案：</td></tr>
-                                <tr><td colspan="2" class="whitespace-pre-wrap bg-white/50 p-2">${escapeHtml(rec.solutionDetail)}</td></tr>
-                            ` : ''}
-
-                            ${rec.remarks ? `
-                                <tr><td class="bg-khaki-100 font-bold">其他備註</td><td>${escapeHtml(rec.remarks)}</td></tr>
-                            ` : ''}
-                        </tbody>
-                    </table>
-                `;
-                container.appendChild(card);
-            });
-        };
-
-        window.switchTab = (tab) => {
-            currentTab = tab;
-            document.getElementById('tabOngoing').className = tab === 'ongoing' ? 'py-2.5 border-b-2 border-khaki-900 text-khaki-900' : 'py-2.5 border-b-2 border-transparent text-khaki-800/60';
-            document.getElementById('tabCompleted').className = tab === 'completed' ? 'py-2.5 border-b-2 border-khaki-900 text-khaki-900' : 'py-2.5 border-b-2 border-transparent text-khaki-800/60';
-            renderRecords();
-        };
-
-        window.initDateDropdowns = () => {
-            const days = Array.from({length: 31}, (_, i) => i + 1);
-            const months = Array.from({length: 12}, (_, i) => i + 1);
-            const currentYear = new Date().getFullYear();
-            const years = Array.from({length: 10}, (_, i) => currentYear - 5 + i);
-
-            const populate = (id, items, suffix) => {
-                document.getElementById(id).innerHTML = items.map(i => `<option value="${i}">${i}${suffix}</option>`).join('');
-            };
-
-            populate('recDay', days, '號'); populate('recMonth', months, '月'); populate('recYear', years, '年');
-            populate('evtDay', days, '號'); populate('evtMonth', months, '月'); populate('evtYear', years, '年');
-
-            const today = new Date();
-            document.getElementById('recDay').value = today.getDate();
-            document.getElementById('recMonth').value = today.getMonth() + 1;
-            document.getElementById('recYear').value = today.getFullYear();
-            document.getElementById('evtDay').value = today.getDate();
-            document.getElementById('evtMonth').value = today.getMonth() + 1;
-            document.getElementById('evtYear').value = today.getFullYear();
-        };
-
-        window.openModal = (docId = null) => {
-            document.getElementById('recordForm').reset();
-            document.getElementById('imagePreviewContainer').classList.add('hidden');
-            currentBase64Image = "";
-            initDateDropdowns();
-
-            if (docId) {
-                const rec = allRecords.find(r => r.id === docId);
-                document.getElementById('editDocId').value = docId;
-                document.getElementById('recDay').value = rec.recDate.day;
-                document.getElementById('recMonth').value = rec.recDate.month;
-                document.getElementById('recYear').value = rec.recDate.year;
-                document.getElementById('recorder').value = rec.recorder;
-
-                document.getElementById('evtDay').value = rec.evtDate.day;
-                document.getElementById('evtMonth').value = rec.evtDate.month;
-                document.getElementById('evtYear').value = rec.evtDate.year;
-                
-                document.querySelector(`input[name="eventType"][value="${rec.eventType}"]`).checked = true;
-                document.getElementById('eventDetail').value = rec.eventDetail;
-                document.getElementById('solutionDetail').value = rec.solutionDetail || "";
-                document.getElementById('complainant').value = rec.complainant;
-                document.getElementById('respondent').value = rec.respondent;
-                document.querySelector(`input[name="talkStatus"][value="${rec.talkStatus}"]`).checked = true;
-                document.getElementById('remarks').value = rec.remarks || "";
-
-                if (rec.imageUrl) {
-                    currentBase64Image = rec.imageUrl;
-                    document.getElementById('imagePreview').src = rec.imageUrl;
-                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
-                }
-            } else {
-                document.getElementById('editDocId').value = "";
-            }
-            document.getElementById('recordModal').classList.remove('hidden');
-        };
-
-        window.closeModal = () => document.getElementById('recordModal').classList.add('hidden');
-
-        function escapeHtml(str) {
-            return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
-        }
-
-        initDateDropdowns();
-    </script>
 </body>
 </html>
